@@ -556,35 +556,19 @@ async function connect() {
       return undefined;
     };
 
-    const [
-      descriptionRaw,
-      featuresRaw,
-      crystalFreq,
-      macAddress,
-      flashSizeKb,
-      packageVersion,
-      chipRevision,
-      majorVersion,
-      minorVersion,
-      flashVendor,
-      psramVendor,
-      flashCap,
-      psramCap,
-    ] = await Promise.all([
-      callChip('getChipDescription'),
-      callChip('getChipFeatures'),
-      callChip('getCrystalFreq'),
-      callChip('readMac'),
-      loader.value.getFlashSize().catch(() => undefined),
-      callChip('getPkgVersion'),
-      callChip('getChipRevision'),
-      callChip('getMajorChipVersion'),
-      callChip('getMinorChipVersion'),
-      callChip('getFlashVendor'),
-      callChip('getPsramVendor'),
-      callChip('getFlashCap'),
-      callChip('getPsramCap'),
-    ]);
+    const descriptionRaw = (await callChip('getChipDescription')) ?? chipName;
+    const featuresRaw = await callChip('getChipFeatures');
+    const crystalFreq = await callChip('getCrystalFreq');
+    const macAddress = await callChip('readMac');
+    const flashSizeKb = await loader.value.getFlashSize().catch(() => undefined);
+    const packageVersion = await callChip('getPkgVersion');
+    const chipRevision = await callChip('getChipRevision');
+    const majorVersion = await callChip('getMajorChipVersion');
+    const minorVersion = await callChip('getMinorChipVersion');
+    const flashVendor = await callChip('getFlashVendor');
+    const psramVendor = await callChip('getPsramVendor');
+    const flashCap = await callChip('getFlashCap');
+    const psramCap = await callChip('getPsramCap');
 
     const flashId = await loader.value.readFlashId().catch(() => undefined);
 
