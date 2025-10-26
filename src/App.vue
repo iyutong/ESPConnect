@@ -127,6 +127,17 @@
                       </v-chip>
                     </v-chip-group>
                   </v-col>
+                  <v-col v-if="chipDetails.facts?.length" cols="12">
+                    <div class="text-subtitle-2 text-medium-emphasis mb-2">Extra Details</div>
+                    <v-list density="compact" class="bg-transparent pa-0">
+                      <v-list-item
+                        v-for="fact in chipDetails.facts"
+                        :key="fact.label"
+                        :title="fact.label"
+                        :subtitle="fact.value"
+                      />
+                    </v-list>
+                  </v-col>
                 </v-row>
               </v-card-text>
             </v-card>
@@ -403,15 +414,52 @@ async function connect() {
     const chipName = await loader.value.main('default_reset');
     const chip = loader.value.chip;
 
-    const [description, features, crystalFreq, macAddress, flashSizeKb] = await Promise.all([
-      chip?.getChipDescription(loader.value).catch(() => chipName),
-      chip?.getChipFeatures(loader.value).catch(() => ''),
-      chip?.getCrystalFreq(loader.value).catch(() => null),
-      chip?.readMac(loader.value).catch(() => ''),
-      loader.value.getFlashSize().catch(() => null),
+    const callChip = async method => {
+      const fn = chip?.[method];
+      if (typeof fn === 'function') {
+        try {
+          return await fn.call(chip, loader.value);
+        } catch (err) {
+          appendLog(`Unable to retrieve ${method}: ${err?.message || err}`, '[warn]');
+          return undefined;
+        }
+      }
+      return undefined;
+    };
+
+    const [
+      descriptionRaw,
+      featuresRaw,
+      crystalFreq,
+      macAddress,
+      flashSizeKb,
+      packageVersion,
+      chipRevision,
+      majorVersion,
+      minorVersion,
+      flashVendor,
+      psramVendor,
+    ] = await Promise.all([
+      callChip('getChipDescription'),
+      callChip('getChipFeatures'),
+      callChip('getCrystalFreq'),
+      callChip('readMac'),
+      loader.value.getFlashSize().catch(() => undefined),
+      callChip('getPkgVersion'),
+      callChip('getChipRevision'),
+      callChip('getMajorChipVersion'),
+      callChip('getMinorChipVersion'),
+      callChip('getFlashVendor'),
+      callChip('getPsramVendor'),
     ]);
 
-    const featureList = typeof features === 'string' ? features.split(/,\s*/) : [];
+    const flashId = await loader.value.readFlashId().catch(() => undefined);
+
+    const featureList = Array.isArray(featuresRaw)
+      ? featuresRaw
+      : typeof featuresRaw === 'string'
+      ? featuresRaw.split(/,\s*/)
+      : [];
     const flashLabel =
       typeof flashSizeKb === 'number'
         ? flashSizeKb >= 1024
@@ -420,14 +468,49 @@ async function connect() {
         : null;
     const crystalLabel =
       typeof crystalFreq === 'number' ? `${Number(crystalFreq).toFixed(0)} MHz` : null;
+    const macLabel = macAddress || 'Unavailable';
+
+    const facts = [];
+    if (typeof packageVersion !== 'undefined' && packageVersion !== null) {
+      facts.push({ label: 'Package Version', value: String(packageVersion) });
+    }
+    if (typeof chipRevision === 'number' && !Number.isNaN(chipRevision)) {
+      facts.push({ label: 'Revision', value: `r${chipRevision}` });
+    } else if (
+      typeof majorVersion === 'number' &&
+      typeof minorVersion === 'number' &&
+      !Number.isNaN(majorVersion) &&
+      !Number.isNaN(minorVersion)
+    ) {
+      facts.push({ label: 'Silicon', value: `v${majorVersion}.${minorVersion}` });
+    }
+    if (flashVendor) {
+      facts.push({ label: 'Embedded Flash Vendor', value: flashVendor });
+    }
+    if (psramVendor) {
+      facts.push({ label: 'PSRAM Vendor', value: psramVendor });
+    }
+    if (typeof flashId === 'number' && !Number.isNaN(flashId)) {
+      const manufacturerHex = `0x${(flashId & 0xff).toString(16).padStart(2, '0').toUpperCase()}`;
+      const memoryType = (flashId >> 8) & 0xff;
+      const capacityCode = (flashId >> 16) & 0xff;
+      const deviceHex = `0x${memoryType.toString(16).padStart(2, '0').toUpperCase()}${capacityCode
+        .toString(16)
+        .padStart(2, '0')
+        .toUpperCase()}`;
+      facts.push({ label: 'Flash ID', value: `0x${flashId.toString(16).padStart(6, '0').toUpperCase()}` });
+      facts.push({ label: 'Flash Manufacturer', value: manufacturerHex });
+      facts.push({ label: 'Flash Device', value: deviceHex });
+    }
 
     chipDetails.value = {
       name: chipName,
-      description,
+      description: descriptionRaw || chipName,
       features: featureList.filter(Boolean),
-      mac: macAddress,
+      mac: macLabel,
       flashSize: flashLabel,
       crystal: crystalLabel,
+      facts,
     };
 
     connected.value = true;
