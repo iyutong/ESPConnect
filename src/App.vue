@@ -80,161 +80,211 @@
 
           <v-divider class="my-4" />
 
-          <v-expand-transition>
-            <v-card v-if="chipDetails" class="mb-4" variant="tonal">
-              <v-card-text>
-                <v-row dense>
-                  <v-col cols="12" md="6">
-                    <div class="text-subtitle-2 text-medium-emphasis">Chip</div>
-                    <div class="text-body-1 font-weight-medium">
-                      {{ chipDetails.description || chipDetails.name }}
-                    </div>
-                    <div class="text-caption text-medium-emphasis mt-1">
-                      {{ chipDetails.name }}
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <div class="text-subtitle-2 text-medium-emphasis">Flash</div>
-                    <div class="text-body-1 font-weight-medium">
-                      {{ chipDetails.flashSize || 'Unknown' }}
-                    </div>
-                    <div class="text-caption text-medium-emphasis mt-1">
-                      Crystal: {{ chipDetails.crystal || 'Unknown' }}
-                    </div>
-                    <div class="text-caption text-medium-emphasis">
-                      MAC: {{ chipDetails.mac || 'Unknown' }}
-                    </div>
-                  </v-col>
-                  <v-col cols="12">
-                    <div class="text-subtitle-2 text-medium-emphasis mb-2">Features</div>
-                    <v-chip-group column>
-                      <v-chip
-                        v-for="feature in chipDetails.features"
-                        :key="feature"
-                        class="me-2 mb-2"
-                        size="small"
-                        variant="elevated"
-                        color="primary"
-                      >
-                        {{ feature }}
-                      </v-chip>
-                      <v-chip
-                        v-if="!chipDetails.features?.length"
-                        size="small"
-                        variant="outlined"
-                      >
-                        Not reported
-                      </v-chip>
-                    </v-chip-group>
-                  </v-col>
-                  <v-col v-if="chipDetails.facts?.length" cols="12">
-                    <div class="text-subtitle-2 text-medium-emphasis mb-3">Extra Details</div>
-                    <v-table density="compact" class="extra-details-table">
-                      <tbody>
-                        <tr v-for="fact in chipDetails.facts" :key="fact.label">
-                          <td class="extra-details-label">
-                            <div class="d-flex align-center gap-2">
-                              <v-icon v-if="fact.icon" size="16">{{ fact.icon }}</v-icon>
-                              <span>{{ fact.label }}</span>
-                            </div>
-                          </td>
-                          <td class="extra-details-value">{{ fact.value }}</td>
-                        </tr>
-                      </tbody>
-                    </v-table>
-                  </v-col>
-                </v-row>
-              </v-card-text>
-            </v-card>
-          </v-expand-transition>
+          <v-tabs v-model="activeTab" class="mb-4" color="primary" grow>
+            <v-tab value="info">Device Info</v-tab>
+            <v-tab value="flash">Flash Firmware</v-tab>
+            <v-tab value="partitions">Partitions</v-tab>
+          </v-tabs>
 
-          <v-row class="mb-2" dense>
-            <v-col cols="12" md="8">
-              <v-file-input
-                label="Firmware binary (.bin)"
-                prepend-icon="mdi-file-upload"
-                accept=".bin"
+          <v-window v-model="activeTab">
+            <v-window-item value="info">
+              <v-expand-transition>
+                <v-card v-if="chipDetails" class="mb-4" variant="tonal">
+                  <v-card-text>
+                    <v-row dense>
+                      <v-col cols="12" md="6">
+                        <div class="text-subtitle-2 text-medium-emphasis">Chip</div>
+                        <div class="text-body-1 font-weight-medium">
+                          {{ chipDetails.description || chipDetails.name }}
+                        </div>
+                        <div class="text-caption text-medium-emphasis mt-1">
+                          {{ chipDetails.name }}
+                        </div>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <div class="text-subtitle-2 text-medium-emphasis">Flash</div>
+                        <div class="text-body-1 font-weight-medium">
+                          {{ chipDetails.flashSize || 'Unknown' }}
+                        </div>
+                        <div class="text-caption text-medium-emphasis mt-1">
+                          Crystal: {{ chipDetails.crystal || 'Unknown' }}
+                        </div>
+                        <div class="text-caption text-medium-emphasis">
+                          MAC: {{ chipDetails.mac || 'Unknown' }}
+                        </div>
+                      </v-col>
+                      <v-col cols="12">
+                        <div class="text-subtitle-2 text-medium-emphasis mb-2">Features</div>
+                        <v-chip-group column>
+                          <v-chip
+                            v-for="feature in chipDetails.features"
+                            :key="feature"
+                            class="me-2 mb-2"
+                            size="small"
+                            variant="elevated"
+                            color="primary"
+                          >
+                            {{ feature }}
+                          </v-chip>
+                          <v-chip v-if="!chipDetails.features?.length" size="small" variant="outlined">
+                            Not reported
+                          </v-chip>
+                        </v-chip-group>
+                      </v-col>
+                      <v-col v-if="chipDetails.facts?.length" cols="12">
+                        <div class="text-subtitle-2 text-medium-emphasis mb-3">Extra Details</div>
+                        <v-table density="compact" class="extra-details-table">
+                          <tbody>
+                            <tr v-for="fact in chipDetails.facts" :key="fact.label">
+                              <td class="extra-details-label">
+                                <div class="d-flex align-center gap-2">
+                                  <v-icon v-if="fact.icon" size="16">{{ fact.icon }}</v-icon>
+                                  <span>{{ fact.label }}</span>
+                                </div>
+                              </td>
+                              <td class="extra-details-value">{{ fact.value }}</td>
+                            </tr>
+                          </tbody>
+                        </v-table>
+                      </v-col>
+                    </v-row>
+                  </v-card-text>
+                </v-card>
+              </v-expand-transition>
+
+              <v-card class="mt-6" variant="tonal">
+                <v-card-title class="text-subtitle-1 font-weight-medium d-flex align-center">
+                  <v-icon class="me-2" size="20">mdi-monitor</v-icon>
+                  Session Log
+                  <v-spacer />
+                  <v-btn
+                    variant="text"
+                    color="primary"
+                    size="small"
+                    prepend-icon="mdi-trash-can-outline"
+                    :disabled="!logText"
+                    @click="clearLog"
+                  >
+                    Clear
+                  </v-btn>
+                </v-card-title>
+                <v-card-text class="log-surface">
+                  <pre class="log-output">{{ logText || 'Logs will appear here once actions begin.' }}</pre>
+                </v-card-text>
+              </v-card>
+            </v-window-item>
+
+            <v-window-item value="flash">
+              <v-row class="mb-2" dense>
+                <v-col cols="12" md="8">
+                  <v-file-input
+                    label="Firmware binary (.bin)"
+                    prepend-icon="mdi-file-upload"
+                    accept=".bin"
+                    density="comfortable"
+                    :disabled="busy"
+                    @update:model-value="handleFirmwareInput"
+                  />
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-text-field
+                    v-model="flashOffset"
+                    label="Flash offset"
+                    placeholder="0x0"
+                    density="comfortable"
+                    :disabled="busy"
+                  />
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-select
+                    v-model="selectedPreset"
+                    :items="offsetPresets"
+                    label="Recommended offsets"
+                    item-title="label"
+                    item-value="value"
+                    clearable
+                    density="comfortable"
+                    :disabled="busy"
+                    @update:model-value="applyOffsetPreset"
+                  />
+                </v-col>
+              </v-row>
+
+              <v-checkbox
+                v-model="eraseFlash"
+                label="Erase entire flash before writing"
                 density="comfortable"
-                :disabled="busy"
-                @update:model-value="handleFirmwareInput"
-              />
-            </v-col>
-            <v-col cols="12" md="4">
-              <v-text-field
-                v-model="flashOffset"
-                label="Flash offset"
-                placeholder="0x0"
-                density="comfortable"
+                hide-details
+                class="mb-4"
                 :disabled="busy"
               />
-            </v-col>
-            <v-col cols="12" md="4">
-              <v-select
-                v-model="selectedPreset"
-                :items="offsetPresets"
-                label="Recommended offsets"
-                item-title="label"
-                item-value="value"
-                clearable
-                density="comfortable"
-                :disabled="busy"
-                @update:model-value="applyOffsetPreset"
-              />
-            </v-col>
-          </v-row>
 
-          <v-checkbox
-            v-model="eraseFlash"
-            label="Erase entire flash before writing"
-            density="comfortable"
-            hide-details
-            class="mb-4"
-            :disabled="busy"
-          />
-
-          <v-btn
-            color="primary"
-            size="large"
-            block
-            :disabled="!canFlash || busy"
-            @click="flashFirmware"
-          >
-            <v-icon start>mdi-lightning-bolt</v-icon>
-            Flash Firmware
-          </v-btn>
-
-          <v-progress-linear
-            v-if="flashInProgress"
-            class="mt-4"
-            :model-value="flashProgress"
-            color="primary"
-            height="12"
-            rounded
-            striped
-          >
-            <strong>{{ flashProgress }}%</strong>
-          </v-progress-linear>
-
-          <v-card class="mt-6" variant="tonal">
-            <v-card-title class="text-subtitle-1 font-weight-medium d-flex align-center">
-              <v-icon class="me-2" size="20">mdi-monitor</v-icon>
-              Session Log
-              <v-spacer />
               <v-btn
-                variant="text"
                 color="primary"
-                size="small"
-                prepend-icon="mdi-trash-can-outline"
-                :disabled="!logText"
-                @click="clearLog"
+                size="large"
+                block
+                :disabled="!canFlash || busy"
+                @click="flashFirmware"
               >
-                Clear
+                <v-icon start>mdi-lightning-bolt</v-icon>
+                Flash Firmware
               </v-btn>
-            </v-card-title>
-            <v-card-text class="log-surface">
-              <pre class="log-output">{{ logText || 'Logs will appear here once actions begin.' }}</pre>
-            </v-card-text>
-          </v-card>
+
+              <v-progress-linear
+                v-if="flashInProgress"
+                class="mt-4"
+                :model-value="flashProgress"
+                color="primary"
+                height="12"
+                rounded
+                striped
+              >
+                <strong>{{ flashProgress }}%</strong>
+              </v-progress-linear>
+            </v-window-item>
+
+            <v-window-item value="partitions">
+              <div v-if="!partitionSegments.length" class="text-body-2 text-medium-emphasis">
+                Connect to an ESP32 to load its partition table.
+              </div>
+              <div v-else class="partition-view">
+                <div class="partition-map">
+                  <div
+                    v-for="segment in partitionSegments"
+                    :key="segment.offset"
+                    class="partition-segment"
+                    :style="{ width: segment.width, backgroundColor: segment.color }"
+                  >
+                    <span class="partition-label">{{ segment.label || 'Unnamed' }}</span>
+                    <span class="partition-meta">
+                      {{ segment.sizeText }} — {{ segment.offsetHex }}
+                    </span>
+                  </div>
+                </div>
+
+                <v-table density="comfortable" class="mt-4">
+                  <thead>
+                    <tr>
+                      <th>Label</th>
+                      <th>Type</th>
+                      <th>Subtype</th>
+                      <th>Offset</th>
+                      <th>Size</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="entry in formattedPartitions" :key="entry.offset">
+                      <td>{{ entry.label || '—' }}</td>
+                      <td>{{ entry.typeHex }}</td>
+                      <td>{{ entry.subtypeHex }}</td>
+                      <td>{{ entry.offsetHex }}</td>
+                      <td>{{ entry.sizeText }}</td>
+                    </tr>
+                  </tbody>
+                </v-table>
+              </div>
+            </v-window-item>
+          </v-window>
         </v-card>
 
         <v-dialog v-model="showBootDialog" width="420">
@@ -614,6 +664,8 @@ const loader = ref(null);
 const firmwareBuffer = ref(null);
 const firmwareName = ref('');
 const chipDetails = ref(null);
+const partitionTable = ref([]);
+const activeTab = ref('info');
 
 const showBootDialog = ref(false);
 const lastErrorMessage = ref('');
@@ -655,6 +707,34 @@ watch(
 function toggleTheme() {
   currentTheme.value = isDarkTheme.value ? 'light' : 'dark';
 }
+
+const partitionSegments = computed(() => {
+  if (!partitionTable.value.length) return [];
+  const total = partitionTable.value.reduce((sum, entry) => sum + entry.size, 0) || 1;
+  const palette = ['#3b82f6', '#22d3ee', '#f59e0b', '#10b981', '#ef4444', '#a855f7', '#14b8a6'];
+  return partitionTable.value.map((entry, index) => {
+    const widthPercent = Math.max(2, (entry.size / total) * 100);
+    return {
+      ...entry,
+      width: `${widthPercent}%`,
+      color: palette[index % palette.length],
+      sizeText: formatBytes(entry.size) ?? `${entry.size} bytes`,
+      offsetHex: `0x${entry.offset.toString(16).toUpperCase()}`,
+      typeHex: `0x${entry.type.toString(16).toUpperCase()}`,
+      subtypeHex: `0x${entry.subtype.toString(16).toUpperCase()}`,
+    };
+  });
+});
+
+const formattedPartitions = computed(() =>
+  partitionTable.value.map(entry => ({
+    ...entry,
+    typeHex: `0x${entry.type.toString(16).toUpperCase()}`,
+    subtypeHex: `0x${entry.subtype.toString(16).toUpperCase()}`,
+    offsetHex: `0x${entry.offset.toString(16).toUpperCase()}`,
+    sizeText: formatBytes(entry.size) ?? `${entry.size} bytes`,
+  }))
+);
 
 const statusLabel = computed(() =>
   connected.value ? statusDetails.value : 'No device connected. Choose a port to begin.'
@@ -851,6 +931,7 @@ async function connect() {
     }
 
     const partitions = await readPartitionTable(loader.value);
+    partitionTable.value = partitions;
     if (partitions.length) {
       const partitionPreview = partitions.slice(0, 3).map(p => {
         const label = p.label || `type 0x${p.type.toString(16)}`;
@@ -1065,5 +1146,49 @@ onBeforeUnmount(() => {
   .extra-details-value {
     text-align: left;
   }
+}
+
+.partition-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.partition-map {
+  display: flex;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--v-theme-on-surface) 12%, transparent);
+  background: color-mix(in srgb, var(--v-theme-surface) 90%, transparent);
+}
+
+.partition-segment {
+  position: relative;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  min-width: 120px;
+  box-sizing: border-box;
+}
+
+.partition-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.partition-meta {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.partition-map:empty::before {
+  content: 'No partitions detected.';
+  padding: 16px;
+  color: color-mix(in srgb, var(--v-theme-on-surface) 60%, transparent);
 }
 </style>

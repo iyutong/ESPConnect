@@ -8,6 +8,7 @@ A browser-based flasher built with Vite and [esptool-js](https://github.com/espr
 - Automatic chip summary (flash size, MAC, features) once connected.
 - Translates package/revision codes and embedded flash/PSRAM capacities into friendly labels.
 - Detects USB bridge VID/PID and eFuse block version automatically.
+- Partition explorer tab with visual flash map and detailed table.
 - Recommended flash-offset presets for common ESP-IDF/Arduino layouts.
 - Detects ESP32-class chips via Web Serial and runs the esptool handshake in the browser.
 - Displays chip metadata (type, flash info) and streaming logs from the bootloader.
