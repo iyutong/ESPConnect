@@ -52,10 +52,6 @@
                 class="status-select"
                 :disabled="busy"
               />
-              <v-divider vertical class="mx-4" />
-              <div class="text-body-2 text-medium-emphasis">
-                {{ statusLabel }}
-              </div>
             </div>
             <v-spacer />
             <v-chip
@@ -495,7 +491,6 @@ function resolveEmbeddedPsram(chipKey, psramCap, psramVendor, featureList) {
 
 const serialSupported = 'serial' in navigator;
 const connected = ref(false);
-const statusDetails = ref('No device connected.');
 const busy = ref(false);
 const flashInProgress = ref(false);
 const flashProgress = ref(0);
@@ -840,10 +835,6 @@ const formattedPartitions = computed(() => {
   });
 });
 
-const statusLabel = computed(() =>
-  connected.value ? statusDetails.value : 'No device connected. Choose a port to begin.'
-);
-
 const connectionChipLabel = computed(() => {
   if (!connected.value) {
     return 'Disconnected';
@@ -890,13 +881,12 @@ async function disconnectTransport() {
   } catch (error) {
     console.warn('Error disconnecting transport', error);
   } finally {
-    transport.value = null;
-    currentPort.value = null;
-    loader.value = null;
-    connected.value = false;
-    statusDetails.value = 'No device connected.';
-    chipDetails.value = null;
-    flashSizeBytes.value = null;
+      transport.value = null;
+      currentPort.value = null;
+      loader.value = null;
+      connected.value = false;
+      chipDetails.value = null;
+      flashSizeBytes.value = null;
   }
 }
 
@@ -1083,9 +1073,8 @@ async function connect() {
       facts,
     };
 
-    connected.value = true;
-    statusDetails.value = 'Device connected. Ready to flash.';
-    appendLog(`Connection established. Ready to flash.`);
+      connected.value = true;
+      appendLog(`Connection established. Ready to flash.`);
   } catch (error) {
     if (error?.name === 'AbortError' || error?.name === 'NotFoundError') {
       appendLog('Port selection was cancelled.');
