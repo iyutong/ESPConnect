@@ -96,6 +96,7 @@
             <v-tab value="info">Device Info</v-tab>
             <v-tab value="partitions">Partitions</v-tab>
             <v-tab value="flash">Flash Firmware</v-tab>
+            <v-tab value="console">Console</v-tab>
             <v-tab value="log">Session Log</v-tab>
           </v-tabs>
 
@@ -127,6 +128,20 @@
                 @firmware-input="handleFirmwareInput"
                 @flash="flashFirmware"
                 @apply-preset="applyOffsetPreset"
+              />
+            </v-window-item>
+
+            <v-window-item value="console">
+              <ConsoleTab
+                :monitor-text="monitorText"
+                :monitor-active="monitorActive"
+                :monitor-error="monitorError"
+                :can-start="canStartMonitor"
+                :can-command="canIssueMonitorCommands"
+                @start-monitor="startMonitor"
+                @stop-monitor="stopMonitor"
+                @clear-monitor="clearMonitorOutput"
+                @reset-board="resetBoard"
               />
             </v-window-item>
 
@@ -181,6 +196,7 @@ import DeviceInfoTab from './components/DeviceInfoTab.vue';
 import FlashFirmwareTab from './components/FlashFirmwareTab.vue';
 import PartitionsTab from './components/PartitionsTab.vue';
 import SessionLogTab from './components/SessionLogTab.vue';
+import ConsoleTab from './components/ConsoleTab.vue';
 
 const SUPPORTED_VENDORS = [
   { usbVendorId: 0x303a },
@@ -610,6 +626,11 @@ const flashOffset = ref('0x0');
 const eraseFlash = ref(false);
 const selectedPreset = ref(null);
 const logBuffer = ref('');
+const monitorText = ref('');
+const monitorActive = ref(false);
+const monitorError = ref(null);
+const monitorAbortController = ref(null);
+const MONITOR_BUFFER_LIMIT = 20000;
 const currentPort = ref(null);
 const transport = ref(null);
 const loader = ref(null);
@@ -1081,6 +1102,11 @@ function appendLog(message, prefix = '[ui]') {
 
 const logText = computed(() => logBuffer.value);
 
+const canStartMonitor = computed(
+  () => connected.value && !busy.value && !flashInProgress.value && Boolean(transport.value)
+);
+const canIssueMonitorCommands = computed(() => connected.value && Boolean(transport.value));
+
 const terminal = {
   clean() {
     logBuffer.value = '';
@@ -1097,8 +1123,127 @@ function clearLog() {
   terminal.clean();
 }
 
+let monitorDecoder = null;
+
+function appendMonitorChunk(bytes) {
+  if (!bytes || !bytes.length) return;
+  if (!monitorDecoder) {
+    monitorDecoder = new TextDecoder();
+  }
+  const text = monitorDecoder.decode(bytes, { stream: true });
+  if (!text) return;
+  monitorText.value += text;
+  if (monitorText.value.length > MONITOR_BUFFER_LIMIT) {
+    monitorText.value = monitorText.value.slice(-MONITOR_BUFFER_LIMIT);
+  }
+}
+
+function clearMonitorOutput() {
+  monitorText.value = '';
+  monitorError.value = null;
+}
+
+function ensureTransportReader() {
+  const transportInstance = transport.value;
+  if (!transportInstance) return null;
+  if (!transportInstance.reader && transportInstance.device?.readable?.getReader) {
+    transportInstance.reader = transportInstance.device.readable.getReader();
+  }
+  return transportInstance.reader ?? null;
+}
+
+async function monitorLoop(signal) {
+  if (!transport.value || typeof transport.value.rawRead !== 'function') {
+    throw new Error('Serial monitor not supported by current transport.');
+  }
+  if (!ensureTransportReader()) {
+    throw new Error('Serial reader unavailable.');
+  }
+  const iterator = transport.value.rawRead();
+  for await (const chunk of iterator) {
+    if (signal.aborted) break;
+    if (!chunk || !chunk.length) continue;
+    appendMonitorChunk(chunk);
+  }
+}
+
+async function startMonitor() {
+  if (!canStartMonitor.value || monitorActive.value) {
+    return;
+  }
+  if (!transport.value) {
+    appendLog('Monitor unavailable: transport not ready.', '[warn]');
+    return;
+  }
+  monitorError.value = null;
+  monitorDecoder = new TextDecoder();
+  const controller = new AbortController();
+  monitorAbortController.value = controller;
+  monitorActive.value = true;
+  appendLog('Serial monitor started.', '[debug]');
+  (async () => {
+    try {
+      await monitorLoop(controller.signal);
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        monitorError.value = err?.message || String(err);
+        appendLog(`Monitor error: ${monitorError.value}`, '[warn]');
+      }
+    } finally {
+      if (monitorAbortController.value === controller) {
+        monitorAbortController.value = null;
+      }
+      monitorActive.value = false;
+    }
+  })();
+}
+
+async function stopMonitor() {
+  if (!monitorActive.value) return;
+  monitorAbortController.value?.abort();
+  try {
+    await transport.value?.flushInput?.();
+  } catch (err) {
+    appendLog(`Monitor stop flush failed: ${err?.message || err}`, '[warn]');
+  }
+  monitorActive.value = false;
+  monitorAbortController.value = null;
+  if (monitorDecoder) {
+    try {
+      monitorDecoder.decode(new Uint8Array(), { stream: false });
+    } catch (err) {
+      console.warn('Monitor decoder flush failed', err);
+    }
+    monitorDecoder = null;
+  }
+  appendLog('Serial monitor stopped.', '[debug]');
+}
+
+async function resetBoard() {
+  if (!transport.value) {
+    appendLog('Cannot reset: transport not available.', '[warn]');
+    return;
+  }
+  try {
+    appendLog('Resetting board (toggle RTS).', '[debug]');
+    await transport.value.setDTR(false);
+    await transport.value.setRTS(true);
+    await loader.value?.sleep?.(120);
+    await transport.value.setRTS(false);
+  } catch (err) {
+    appendLog(`Board reset failed: ${err?.message || err}`, '[error]');
+  }
+}
+
 async function disconnectTransport() {
   try {
+    if (monitorActive.value) {
+      await stopMonitor();
+    } else {
+      monitorAbortController.value?.abort();
+      monitorAbortController.value = null;
+      monitorActive.value = false;
+    }
     if (transport.value) {
       await transport.value.disconnect();
     } else if (currentPort.value) {
@@ -1113,6 +1258,8 @@ async function disconnectTransport() {
       connected.value = false;
       chipDetails.value = null;
       flashSizeBytes.value = null;
+      monitorError.value = null;
+      monitorText.value = '';
   }
 }
 
