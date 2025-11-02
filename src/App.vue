@@ -27,13 +27,13 @@
     </v-navigation-drawer>
     <v-app-bar app :elevation="8">
       <div class="status-actions">
-        <v-btn :class="['status-button', { 'status-button--active': !connected && !busy }]" color="primary"
-          variant="outlined" density="comfortable" :disabled="!serialSupported || connected || busy" @click="connect">
+        <v-btn color="primary" variant="outlined" density="comfortable"
+          :disabled="!serialSupported || connected || busy" @click="connect">
           <v-icon start>mdi-usb-flash-drive</v-icon>
           Connect
         </v-btn>
-        <v-btn :class="['status-button', { 'status-button--active': connected }]" color="error" variant="outlined"
-          density="comfortable" :disabled="!connected || busy" @click="disconnect">
+        <v-btn color="error" variant="outlined" density="comfortable" :disabled="!connected || busy"
+          @click="disconnect">
           <v-icon start>mdi-close-circle</v-icon>
           Disconnect
         </v-btn>
