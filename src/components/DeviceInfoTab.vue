@@ -76,8 +76,8 @@
             <v-row dense class="detail-group-row">
               <v-col v-for="group in details.factGroups" :key="group.title" cols="12" md="6">
                 <v-card class="detail-card" elevation="0" variant="tonal">
-                  <v-card-title class="detail-card__title">
-                    <v-icon size="18" class="me-2">{{ group.icon }}</v-icon>
+                  <v-card-title>
+                    <v-icon class="me-2">{{ group.icon }}</v-icon>
                     {{ group.title }}
                   </v-card-title>
                   <v-divider class="detail-card__divider" />
