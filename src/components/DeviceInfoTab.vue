@@ -1,13 +1,11 @@
 <template>
   <v-expand-transition v-if="details">
     <div class="device-info-wrapper">
-      <v-card class="device-card" elevation="0" prepend-icon="mdi-chip">
-        <template v-slot:title>
-          <span class="font-weight-black">{{ details.description || details.name }}</span>
-        </template>
+      <v-card class="device-card" elevation="0">
         <v-card-text class="device-card__body">
           <div class="device-header">
             <div class="device-header__text">
+              <div class="device-chip-name">{{ details.description || details.name }}</div>
               <div v-if="hasDistinctDescription" class="device-chip-alias">
                 {{ details.name }}
               </div>
