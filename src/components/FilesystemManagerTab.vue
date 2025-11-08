@@ -1,5 +1,5 @@
 <template>
-  <div class="spiffs-manager">
+  <div class="filesystem-manager">
     <v-alert
       v-if="error"
       type="error"
@@ -37,7 +37,7 @@
           :disabled="loading || busy || saving || !partitions.length"
           @update:model-value="value => emit('select-partition', value)"
         />
-        <div class="spiffs-manager__controls">
+        <div class="filesystem-manager__controls">
           <v-btn
             color="primary"
             variant="tonal"
@@ -111,8 +111,8 @@
         </v-chip>
       </v-card-title>
       <v-card-text>
-        <div v-if="usage?.capacityBytes" class="spiffs-usage">
-          <div class="spiffs-usage__labels">
+        <div v-if="usage?.capacityBytes" class="filesystem-usage">
+          <div class="filesystem-usage__labels">
             <span>Used {{ formatSize(usage.usedBytes) }} / {{ formatSize(usage.capacityBytes) }}</span>
             <span>{{ usagePercent }}%</span>
           </div>
@@ -143,15 +143,15 @@
             </v-btn>
           </div>
           <div
-            class="spiffs-dropzone"
-            :class="{ 'spiffs-dropzone--active': dragActive }"
+            class="filesystem-dropzone"
+            :class="{ 'filesystem-dropzone--active': dragActive }"
             @dragover.prevent="handleDragOver"
             @dragleave.prevent="handleDragLeave"
             @drop.prevent="handleDrop"
           >
-            <div class="spiffs-dropzone__hint">
+            <div class="filesystem-dropzone__hint">
               <v-icon size="32">mdi-cloud-upload-outline</v-icon>
-              <div class="spiffs-dropzone__hint-text">
+              <div class="filesystem-dropzone__hint-text">
                 <strong>Drop file to upload</strong>
                 <span>Auto uploads on drop</span>
               </div>
@@ -170,7 +170,7 @@
           {{ emptyMessage }}
         </v-alert>
         <template v-else>
-          <div class="spiffs-table__toolbar mt-4">
+          <div class="filesystem-table__toolbar mt-4">
             <v-text-field
               v-model="fileSearch"
               label="Filter files"
@@ -179,7 +179,7 @@
               clearable
               hide-details
               prepend-inner-icon="mdi-magnify"
-              class="spiffs-table__filter spiffs-table__filter--search"
+              class="filesystem-table__filter filesystem-table__filter--search"
             />
             <v-select
               v-model="fileTypeFilter"
@@ -190,13 +190,13 @@
               density="comfortable"
               hide-details
               variant="outlined"
-              class="spiffs-table__filter spiffs-table__filter--type"
+              class="filesystem-table__filter filesystem-table__filter--type"
             />
             <v-chip size="small" variant="tonal" color="primary">
               {{ filteredCountLabel }}
             </v-chip>
           </div>
-          <v-data-table
+        <v-data-table
           :headers="fileTableHeaders"
           :items="filteredFiles"
           item-key="name"
@@ -204,7 +204,7 @@
           v-model:page="filesPage"
           :items-per-page-options="filesPerPageOptions"
           density="comfortable"
-          class="spiffs-table mt-4"
+          class="filesystem-table mt-4"
         >
           <template #item.name="{ item }">
             <code>{{ unwrapItem(item).name }}</code>
@@ -638,13 +638,13 @@ function previewLabel(name) {
 
 
 <style scoped>
-.spiffs-manager {
+.filesystem-manager {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.spiffs-manager__controls {
+.filesystem-manager__controls {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -679,14 +679,14 @@ function previewLabel(name) {
   }
 }
 
-.spiffs-usage {
+.filesystem-usage {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-bottom: 16px;
 }
 
-.spiffs-usage__labels {
+.filesystem-usage__labels {
   display: flex;
   justify-content: space-between;
   font-size: 0.85rem;
@@ -694,29 +694,29 @@ function previewLabel(name) {
   opacity: 0.7;
 }
 
-.spiffs-table code {
+.filesystem-table code {
   font-size: 0.85rem;
 }
 
-.spiffs-table__toolbar {
+.filesystem-table__toolbar {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-.spiffs-table__filter {
+.filesystem-table__filter {
   flex: 1;
   max-width: 360px;
 }
 
-.spiffs-table__filter--type {
+.filesystem-table__filter--type {
   flex: 0 0 auto;
   min-width: 180px;
   max-width: 220px;
 }
 
-.spiffs-dropzone {
+.filesystem-dropzone {
   position: relative;
   border: 2px dashed transparent;
   border-radius: 12px;
@@ -727,12 +727,12 @@ function previewLabel(name) {
   justify-content: center;
 }
 
-.spiffs-dropzone--active {
+.filesystem-dropzone--active {
   border-color: color-mix(in srgb, var(--v-theme-primary) 60%, transparent);
   background-color: color-mix(in srgb, var(--v-theme-primary) 10%, transparent);
 }
 
-.spiffs-dropzone__overlay {
+.filesystem-dropzone__overlay {
   position: absolute;
   inset: 0;
   display: flex;
@@ -745,14 +745,14 @@ function previewLabel(name) {
   letter-spacing: 0.08em;
 }
 
-.spiffs-dropzone__hint {
+.filesystem-dropzone__hint {
   display: flex;
   align-items: center;
   gap: 12px;
   color: color-mix(in srgb, var(--v-theme-on-surface) 80%, transparent);
 }
 
-.spiffs-dropzone__hint-text {
+.filesystem-dropzone__hint-text {
   display: flex;
   flex-direction: column;
   font-size: 0.9rem;
