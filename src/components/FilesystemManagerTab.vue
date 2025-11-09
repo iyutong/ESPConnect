@@ -126,17 +126,17 @@
               {{ formatSize(unwrapItem(item).size) }}
             </template>
             <template #item.actions="{ item }">
-              <div>
-                <v-btn size="small" variant="text" color="info"
+              <div class="d-flex ga-2 justify-end">
+                <v-icon size="small" variant="text" color="info" 
                   v-if="enablePreview && isViewable(unwrapItem(item).name)"
                   :disabled="loading || busy || saving || readOnly" :icon="previewIcon(unwrapItem(item).name)"
                   :title="previewLabel(unwrapItem(item).name)" :aria-label="previewLabel(unwrapItem(item).name)"
                   @click="emit('view-file', unwrapItem(item).name)" />
-                <v-btn size="small" variant="text" color="primary" v-if="enableDownload"
+                <v-icon size="small" variant="text" color="primary" v-if="enableDownload"
                   :disabled="loading || busy || saving || readOnly" icon="mdi-download"
                   :title="`Download ${unwrapItem(item).name}`" :aria-label="`Download ${unwrapItem(item).name}`"
                   @click="emit('download-file', unwrapItem(item).name)" />
-                <v-btn size="small" variant="text" color="error" :disabled="readOnly || loading || busy || saving"
+                <v-icon size="small" variant="text" color="error" :disabled="readOnly || loading || busy || saving"
                   icon="mdi-delete" :title="`Delete ${unwrapItem(item).name}`"
                   :aria-label="`Delete ${unwrapItem(item).name}`" @click="emit('delete-file', unwrapItem(item).name)" />
               </div>
@@ -236,7 +236,7 @@ const props = defineProps({
 const fileTableHeaders = Object.freeze([
   { title: 'Name', key: 'name', sortable: true, align: 'start' },
   { title: 'Size', key: 'size', sortable: true, align: 'start' },
-  { title: 'Actions', key: 'actions', sortable: false, align: 'start' },
+  { title: 'Actions', key: 'actions', sortable: false, align: 'end' },
 ]);
 const filesPerPageOptions = Object.freeze([10, 25, 50, { value: -1, title: 'All' }]);
 const FALLBACK_TEXT_EXT = ['txt', 'log', 'json', 'csv', 'ini', 'cfg', 'conf', 'htm', 'html', 'md', 'xml'];
