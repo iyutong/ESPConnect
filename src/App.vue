@@ -4985,7 +4985,7 @@ async function connect() {
       transport: transport.value,
       baudrate: connectBaud,
       terminal,
-      debugLogging:true
+      debugLogging: true
     });
     currentBaud.value = connectBaud;
     transport.value.baudrate = connectBaud;
@@ -5112,25 +5112,12 @@ async function connect() {
       featureList.some(
         feature => typeof feature === 'string' && feature.toUpperCase().includes('OCTAL')
       );
+
     let flashBytesValue = null;
     let flashLabelSuffix = '';
-    const MAX_REASONABLE_FLASH_BYTES = 256 * 1024 * 1024 * 1024; // 256 GB sanity cap
-    if (typeof flashSizeRaw === 'number' && flashSizeRaw > 0) {
-      const asBytes = flashSizeRaw;
-      const asKbBytes = flashSizeRaw * 1024;
-      if (Number.isFinite(asBytes) && asBytes > 0 && asBytes <= MAX_REASONABLE_FLASH_BYTES) {
-        flashBytesValue = asBytes;
-        flashLabelSuffix = ' (via stub)';
-      } else if (
-        Number.isFinite(asKbBytes) &&
-        asKbBytes > 0 &&
-        asKbBytes <= MAX_REASONABLE_FLASH_BYTES
-      ) {
-        flashBytesValue = asKbBytes;
-        flashLabelSuffix = ' (via stub KB)';
-      }
-    }
-    if (!flashBytesValue) {
+    if (typeof flashSizeKb === 'number' && flashSizeKb > 0) {
+      flashBytesValue = flashSizeKb * 1024;
+    } else {
       const capacityCandidates = [capacityCodeRaw, memoryTypeCode, manufacturerCode].filter(
         value =>
           Number.isInteger(value) &&
@@ -5141,7 +5128,7 @@ async function connect() {
         const fallbackFlashBytes = Math.pow(2, candidate);
         if (Number.isFinite(fallbackFlashBytes) && fallbackFlashBytes > 0) {
           flashBytesValue = fallbackFlashBytes;
-          flashLabelSuffix = ' (via RDID)';
+          flashLabelSuffix = '';
           appendLog(
             `Flash size detection fallback: using JEDEC capacity code 0x${candidate
               .toString(16)
@@ -5149,27 +5136,9 @@ async function connect() {
                 ?.toString(16)
                 .padStart(6, '0')
                 .toUpperCase()}.`,
-            '[ESPConnect-Warn]'
+            '[warn]'
           );
           break;
-        }
-      }
-      const isOctalCapacityCode =
-        Number.isInteger(capacityCodeRaw) && capacityCodeRaw >= 0x30 && capacityCodeRaw <= 0x3f;
-      if (!flashBytesValue && isOctalCapacityCode) {
-        const mappedCapacityCode = capacityCodeRaw - 0x20; // vendor-specific octal ID codes sit +0x20 above standard
-        const fallbackFlashBytes = Math.pow(2, mappedCapacityCode);
-        if (Number.isFinite(fallbackFlashBytes) && fallbackFlashBytes > 0) {
-          flashBytesValue = fallbackFlashBytes;
-          flashLabelSuffix = ' (via octal RDID)';
-          appendLog(
-            `Flash size detection fallback: mapped octal capacity code 0x${capacityCodeRaw
-              .toString(16)
-              .toUpperCase()} -> 0x${mappedCapacityCode
-                .toString(16)
-                .toUpperCase()} (${formatBytes(fallbackFlashBytes)}).`,
-            '[ESPConnect-Warn]'
-          );
         }
       }
     }
@@ -5185,10 +5154,9 @@ async function connect() {
           .toUpperCase()} (manuf=0x${toHexByte(manufacturerCode)}, type=0x${toHexByte(
             memoryTypeCode
           )}, cap=0x${toHexByte(capacityCodeRaw)}).`,
-        '[ESPConnect-Warn]'
+        '[warn]'
       );
     }
-
     flashSizeBytes.value = flashBytesValue;
     const flashLabel =
       flashBytesValue && flashBytesValue > 0
