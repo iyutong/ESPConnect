@@ -3885,7 +3885,17 @@ const partitionSegments = computed(() => {
     return [];
   }
   const sortedPartitions = [...partitionTable.value].sort((a, b) => a.offset - b.offset);
-  const totalFlash = flashSizeBytes.value && flashSizeBytes.value > 0 ? flashSizeBytes.value : null;
+  const parseFlashSizeLabel = label => {
+    if (!label || typeof label !== 'string') return null;
+    const match = label.match(/(\d+(?:\.\d+)?)\s*(MB|KB)/i);
+    if (!match) return null;
+    const value = Number.parseFloat(match[1]);
+    if (!Number.isFinite(value) || value <= 0) return null;
+    return match[2].toUpperCase() === 'MB' ? value * 1024 * 1024 : value * 1024;
+  };
+  const totalFlash =
+    (flashSizeBytes.value && flashSizeBytes.value > 0 ? flashSizeBytes.value : null) ||
+    parseFlashSizeLabel(partitionFlashSizeLabel.value);
   const segments = [];
   let cursor = 0;
 
