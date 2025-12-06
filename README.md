@@ -4,7 +4,7 @@
 <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee">
 </a>
 
-ESPConnect is a browser-based control center for ESP32- and ESP8266-class boards. It runs entirely inside a modern Chromium browser so you can inspect hardware details, manage SPIFFS files, back up flash, and deploy firmware without installing desktop software.
+ESPConnect is a browser-based control center for ESP32- and ESP8266-class boards. It runs entirely inside a modern Chromium browser so you can inspect hardware details, manage SPIFFS files, back up flash, and deploy firmware without installing desktop software. It is based on Jason2866's [WebSerial ESPTool](https://github.com/Jason2866/WebSerial_ESPTool/tree/development)
 - [Tutorial](https://youtu.be/-nhDKzBxHiI)
 - [Web application](https://thelastoutpostworkshop.github.io/microcontroller_devkit/espconnect/)
 
