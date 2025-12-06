@@ -5257,7 +5257,6 @@ async function connect() {
 }
 
 async function disconnect() {
-  if (busy.value) return;
   busy.value = true;
   await disconnectTransport();
   appendLog('Serial port disconnected.');

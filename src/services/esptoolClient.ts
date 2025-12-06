@@ -145,11 +145,15 @@ class CompatibleTransport {
   }
 
   async disconnect() {
-    try {
-      const loader = this.getLoader();
-      await loader?.disconnect();
-    } catch {
-      // swallow
+    const loader = this.getLoader();
+    if (loader?.disconnect) {
+      try {
+        const maybeDisconnect = loader.disconnect();
+        // Guard against hanging if the device is already gone.
+        await Promise.race([maybeDisconnect, sleep(800)]);
+      } catch {
+        // swallow
+      }
     }
     try {
       await this.device.close();
