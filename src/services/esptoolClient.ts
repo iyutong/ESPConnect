@@ -59,10 +59,16 @@ export async function requestSerialPort(filters?: SerialPortFilter[]) {
   return navigator.serial.requestPort(filters ? { filters } : undefined);
 }
 
+export interface ConnectHandshakeResult {
+  chipName: string;
+  macAddress?: string;
+  securityFacts: SecurityFact[];
+}
+
 export interface EsptoolClient {
   loader: CompatibleLoader;
   transport: CompatibleTransport;
-  connectAndHandshake: () => Promise<{ chipName: string; chip: any; macAddress?: string }>;
+  connectAndHandshake: () => Promise<ConnectHandshakeResult>;
   disconnect: () => Promise<void>;
   changeBaud: (baud: number) => Promise<void>;
   readPartitionTable: (offset?: number, length?: number) => Promise<any[]>;
@@ -403,8 +409,9 @@ export function createEsptoolClient({
 
   let client: EsptoolClient;
 
-  // Open the serial port, talk to the ROM bootloader, load the stub flasher
-  async function connectAndHandshake() {
+  // Open the serial port, talk to the ROM bootloader, load the stub flasher, optionally raise baud,
+  // and return the detected chip name plus MAC/security metadata.
+  async function connectAndHandshake(): Promise<ConnectHandshakeResult> {
     setBusy(true);
     try {
       status('Opening serial port...');
