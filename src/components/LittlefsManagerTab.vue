@@ -166,8 +166,9 @@
           <template #item.actions="{ item }">
             <div class="filesystem-table__actions">
               <v-btn v-if="item.type === 'file'" icon variant="text" size="small"
-                :aria-label="`View ${item.name}`" :disabled="!isFileViewable(item.name)" @click="emit('view-file', item.path)">
-                <v-icon size="18">mdi-eye</v-icon>
+                :title="`${previewLabel(item.name)} ${item.name}`" :aria-label="`${previewLabel(item.name)} ${item.name}`"
+                :disabled="!isViewable(item.name)" @click="emit('view-file', item.path)">
+                <v-icon size="18">{{ previewIcon(item.name) }}</v-icon>
               </v-btn>
               <v-btn v-if="item.type === 'file'" icon variant="text" size="small"
                 :aria-label="`Download ${item.name}`" @click="emit('download-file', item.path)">
@@ -363,6 +364,58 @@ const readOnly = computed(() => props.readOnly);
 const readOnlyMessage = computed(() => props.readOnlyReason || 'This filesystem is read-only.');
 const newFolderDialog = ref(false);
 const newFolderName = ref('');
+
+function toPreviewInfo(value) {
+  if (!value) {
+    return null;
+  }
+  if (typeof value === 'string') {
+    return { mode: value };
+  }
+  if (value === true) {
+    return { mode: 'text' };
+  }
+  if (typeof value === 'object' && value.mode) {
+    return value;
+  }
+  return null;
+}
+
+function getPreviewInfo(name) {
+  if (!name) {
+    return null;
+  }
+  if (typeof props.getFilePreviewInfo === 'function') {
+    const info = toPreviewInfo(props.getFilePreviewInfo(name));
+    if (info) {
+      return info;
+    }
+  }
+  if (typeof props.isFileViewable === 'function') {
+    return toPreviewInfo(props.isFileViewable(name));
+  }
+  return null;
+}
+
+function isViewable(name) {
+  return Boolean(getPreviewInfo(name));
+}
+
+function previewIcon(name) {
+  const info = getPreviewInfo(name);
+  if (info?.mode === 'audio') {
+    return 'mdi-headphones';
+  }
+  return 'mdi-eye';
+}
+
+function previewLabel(name) {
+  const info = getPreviewInfo(name);
+  if (info?.mode === 'audio') {
+    return 'Listen';
+  }
+  return 'View';
+}
 
 function formatSize(bytes) {
   if (!Number.isFinite(bytes)) return '';
