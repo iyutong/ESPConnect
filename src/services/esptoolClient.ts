@@ -107,9 +107,6 @@ class CompatibleTransport {
   baudrate: number;
   tracing: boolean;
   private _reader: any;
-  private readonly virtualReader = {
-
-  };
   private readonly getLoader: () => CompatibleLoader | null;
   private readonly isBusy: BusyGetter;
 
@@ -124,15 +121,6 @@ class CompatibleTransport {
     this.baudrate = ESP_ROM_BAUD;
     this.getLoader = getLoader;
     this.isBusy = isBusy;
-    this._reader = this.virtualReader;
-  }
-
-  get reader() {
-    return this._reader ?? this.virtualReader;
-  }
-
-  set reader(value: any) {
-    this._reader = value ?? this.virtualReader;
   }
 
   async flushInput() {
@@ -159,7 +147,6 @@ class CompatibleTransport {
     } catch {
       // swallow
     }
-    this.reader = this.virtualReader;
   }
 
   async setDTR(state: boolean) {

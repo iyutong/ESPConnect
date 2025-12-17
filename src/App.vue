@@ -4973,16 +4973,6 @@ function clearMonitorOutput() {
   monitorNoiseWarned = false;
 }
 
-// Lazily create and return a reader for the current transport stream.
-function ensureTransportReader() {
-  const transportInstance = transport.value;
-  if (!transportInstance) return null;
-  if (!transportInstance.reader && transportInstance.device?.readable?.getReader) {
-    transportInstance.reader = transportInstance.device.readable.getReader();
-  }
-  return transportInstance.reader ?? null;
-}
-
 // React to browser-level serial disconnect events and clean up connections.
 async function handleSerialDisconnectEvent(event) {
   const eventPort = event?.target?.port ?? event?.port ?? null;
@@ -5004,11 +4994,8 @@ async function handleSerialDisconnectEvent(event) {
 
 // Read serial data in a loop, pushing it into the monitor until aborted.
 async function monitorLoop(signal) {
-  if (!transport.value || typeof transport.value.rawRead !== 'function') {
+  if (!transport.value) {
     throw new Error('Serial monitor not supported by current transport.');
-  }
-  if (!ensureTransportReader()) {
-    throw new Error('Serial reader unavailable.');
   }
   const iterator = transport.value.rawRead();
   for await (const chunk of iterator) {
