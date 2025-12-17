@@ -6,7 +6,7 @@ export type SpiffsClient = {
   write: (path: string, data: any) => any;
   remove: (path: string) => any;
   format: () => any;
-  toImage: () => any;
+  toImage: () => Uint8Array;
   getUsage?: () => { capacityBytes: number; usedBytes: number; freeBytes: number };
   canFit?: (path: string, size: number) => boolean;
 };
@@ -21,7 +21,7 @@ export type LittlefsClient = {
   deleteFile?: (path: string) => any;
   mkdir?: (path: string) => any;
   format?: () => any;
-  toImage?: () => any;
+  toImage?: () => Uint8Array;
   getUsage?: () => { capacityBytes: number; usedBytes: number; freeBytes: number };
   canFit?: (path: string, size: number) => boolean;
 };
@@ -31,7 +31,7 @@ export type FatfsClient = {
   writeFile?: (path: string, data: any) => any;
   deleteFile?: (path: string) => any;
   format?: () => any;
-  toImage?: () => any;
+  toImage?: () => Uint8Array;
   readFile?: (path: string) => any;
   read?: (path: string) => any;
 };

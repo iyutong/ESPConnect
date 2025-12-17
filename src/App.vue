@@ -3233,15 +3233,14 @@ type CancelDownloadOptions = {
 };
 
 // Write a filesystem image to flash with progress callbacks.
-async function writeFilesystemImage(partition: any, image: Uint8Array | ArrayBuffer, options: WriteFilesystemOptions = {}) {
+async function writeFilesystemImage(partition: any, image: Uint8Array, options: WriteFilesystemOptions = {}) {
   const { onProgress, label = 'filesystem', state, compress = true } = options;
   if (!loader.value) {
     throw new Error('Loader unavailable.');
   }
   await releaseTransportReader();
-  const binary = image instanceof Uint8Array ? image : new Uint8Array(image);
   await loader.value.flashData(
-    binary.buffer,
+    toArrayBuffer(image),
     (written, total) => {
       const progressValue = total ? Math.min(100, Math.floor((written / total) * 100)) : 0;
       const statusLabel = `Writing ${label}... ${written.toLocaleString()} / ${total.toLocaleString()} bytes`;
