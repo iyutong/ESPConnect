@@ -8,21 +8,34 @@
       <template v-slot:title>
         <span class="font-weight-black">NVS Inspector</span>
       </template>
+
       <v-card-text class="d-flex flex-column gap-4">
-        <v-select :items="partitions" item-title="label" item-value="id" density="comfortable" label="Partition name"
-          :model-value="selectedPartitionId" :disabled="loading || !partitions.length"
-          @update:model-value="value => emit('select-partition', value)" />
+        <v-select
+          :items="partitions"
+          item-title="label"
+          item-value="id"
+          density="comfortable"
+          label="Partition name"
+          :model-value="selectedPartitionId"
+          :disabled="loading || !partitions.length"
+          @update:model-value="value => emit('select-partition', value)"
+        />
+
         <div class="nvs-inspector__controls">
-          <v-btn color="primary" variant="tonal" :disabled="loading || !hasPartition" @click="emit('read-nvs')">
+          <v-btn color="primary" variant="tonal" :disabled="loading || !hasPartitionSelected" @click="emit('read-nvs')">
             <v-icon start>mdi-database-sync</v-icon>
             Read NVS
           </v-btn>
+
           <v-spacer />
+
           <v-chip v-if="result" color="primary" size="large" variant="tonal">
             {{ result.entries.length.toLocaleString() }} keys
           </v-chip>
         </div>
+
         <v-progress-linear v-if="loading" height="10" indeterminate color="primary" rounded />
+
         <p v-if="status" class="text-caption text-medium-emphasis mb-0">
           {{ status }}
         </p>
@@ -37,6 +50,7 @@
             <div class="text-h5 font-weight-black">v{{ result.version }}</div>
           </v-card>
         </v-col>
+
         <v-col cols="12" sm="6" md="3">
           <v-card variant="tonal" class="pa-4">
             <div class="text-overline text-medium-emphasis">Pages</div>
@@ -46,12 +60,14 @@
             </div>
           </v-card>
         </v-col>
+
         <v-col cols="12" sm="6" md="3">
           <v-card variant="tonal" class="pa-4">
             <div class="text-overline text-medium-emphasis">Namespaces</div>
             <div class="text-h5 font-weight-black">{{ result.namespaces.length.toLocaleString() }}</div>
           </v-card>
         </v-col>
+
         <v-col cols="12" sm="6" md="3">
           <v-card variant="tonal" class="pa-4">
             <div class="text-overline text-medium-emphasis">Entries</div>
@@ -67,55 +83,101 @@
             {{ filteredEntries.length.toLocaleString() }} shown
           </v-chip>
         </v-card-title>
+
         <v-card-text>
           <div class="nvs-inspector__filters">
-            <v-select v-model="namespaceFilter" :items="namespaceFilterOptions" density="comfortable" label="Namespace"
-              variant="outlined" hide-details class="nvs-inspector__filter" />
-            <v-text-field v-model="keyFilter" density="comfortable" label="Key" variant="outlined" clearable
-              hide-details prepend-inner-icon="mdi-magnify" class="nvs-inspector__filter" />
-            <v-select v-model="typeFilter" :items="typeFilterOptions" density="comfortable" label="Type"
-              variant="outlined" hide-details class="nvs-inspector__filter" />
-            <v-text-field v-model="valueFilter" density="comfortable" label="Value preview" variant="outlined"
-              clearable hide-details class="nvs-inspector__filter" />
+            <v-select
+              v-model="namespaceFilter"
+              :items="namespaceFilterOptions"
+              density="comfortable"
+              label="Namespace"
+              variant="outlined"
+              hide-details
+              class="nvs-inspector__filter"
+            />
+            <v-text-field
+              v-model="keyFilter"
+              density="comfortable"
+              label="Key"
+              variant="outlined"
+              clearable
+              hide-details
+              prepend-inner-icon="mdi-magnify"
+              class="nvs-inspector__filter"
+            />
+            <v-select
+              v-model="typeFilter"
+              :items="typeFilterOptions"
+              density="comfortable"
+              label="Type"
+              variant="outlined"
+              hide-details
+              class="nvs-inspector__filter"
+            />
+            <v-text-field
+              v-model="valueFilter"
+              density="comfortable"
+              label="Value preview"
+              variant="outlined"
+              clearable
+              hide-details
+              class="nvs-inspector__filter"
+            />
           </div>
 
-          <v-data-table :headers="headers" :items="filteredEntries" item-key="__key" density="compact"
-            class="nvs-inspector__table mt-4">
+          <v-data-table
+            :headers="headers"
+            :items="filteredEntries"
+            item-key="__key"
+            density="compact"
+            class="nvs-inspector__table mt-4"
+          >
             <template #item.namespace="{ item }">
               <code>{{ unwrapItem(item).namespace }}</code>
             </template>
+
             <template #item.key="{ item }">
               <code>{{ unwrapItem(item).key }}</code>
             </template>
+
             <template #item.type="{ item }">
               <v-chip size="small" variant="tonal" color="secondary">{{ unwrapItem(item).type }}</v-chip>
             </template>
+
             <template #item.valuePreview="{ item }">
               <code>{{ unwrapItem(item).valuePreview }}</code>
             </template>
+
             <template #item.length="{ item }">
-              <span v-if="typeof unwrapItem(item).length === 'number'">{{ unwrapItem(item).length.toLocaleString()
-              }}</span>
-              <span v-else class="text-medium-emphasis">—</span>
-            </template>
-            <template #item.crcOk="{ item }">
-              <v-chip v-if="unwrapItem(item).crcOk === true" size="small" color="success" variant="tonal">OK</v-chip>
-              <v-chip v-else-if="unwrapItem(item).crcOk === false" size="small" color="error"
-                variant="tonal">BAD</v-chip>
-              <span v-else class="text-medium-emphasis">—</span>
-            </template>
-            <template #item.location="{ item }">
-              <span v-if="unwrapItem(item).raw" class="text-caption">
-                <code>p{{ unwrapItem(item).raw.pageIndex }}:e{{ unwrapItem(item).raw.entryIndex }}</code>
+              <span v-if="typeof unwrapItem(item).length === 'number'">
+                {{ unwrapItem(item).length.toLocaleString() }}
               </span>
               <span v-else class="text-medium-emphasis">—</span>
             </template>
+
+            <template #item.crcOk="{ item }">
+              <v-chip v-if="unwrapItem(item).crcOk === true" size="small" color="success" variant="tonal">OK</v-chip>
+              <v-chip v-else-if="unwrapItem(item).crcOk === false" size="small" color="error" variant="tonal"
+                >BAD</v-chip
+              >
+              <span v-else class="text-medium-emphasis">—</span>
+            </template>
+
+            <!-- FIX: parser now uses `location`, not `raw` -->
+            <template #item.location="{ item }">
+              <span v-if="unwrapItem(item).location" class="text-caption">
+                <code>p{{ unwrapItem(item).location.pageIndex }}:e{{ unwrapItem(item).location.entryIndex }}</code>
+              </span>
+              <span v-else class="text-medium-emphasis">—</span>
+            </template>
+
             <template #item.issues="{ item }">
               <v-chip v-if="unwrapItem(item).warnings?.length" size="small" color="warning" variant="tonal">
                 {{ unwrapItem(item).warnings.length }}
               </v-chip>
               <span v-else class="text-medium-emphasis">—</span>
             </template>
+
             <template #no-data>
               <v-alert type="info" variant="tonal" border="start">No entries match the current filters.</v-alert>
             </template>
@@ -135,6 +197,7 @@
               {{ result.warnings.length }}
             </v-chip>
           </v-expansion-panel-title>
+
           <v-expansion-panel-text>
             <div v-if="result.errors.length" class="mb-4">
               <div class="text-overline text-medium-emphasis mb-2">Errors</div>
@@ -142,12 +205,14 @@
                 <li v-for="(line, idx) in result.errors" :key="'e-' + idx"><code>{{ line }}</code></li>
               </ul>
             </div>
+
             <div v-if="result.warnings.length">
               <div class="text-overline text-medium-emphasis mb-2">Warnings</div>
               <ul class="nvs-inspector__list">
                 <li v-for="(line, idx) in result.warnings" :key="'w-' + idx"><code>{{ line }}</code></li>
               </ul>
             </div>
+
             <div v-if="!result.errors.length && !result.warnings.length" class="text-medium-emphasis">
               No warnings or errors reported.
             </div>
@@ -169,6 +234,19 @@ type PartitionOption = {
   sizeText?: string;
 };
 
+type NvsLocation = {
+  pageIndex: number;
+  entryIndex: number;
+  spanCount?: number;
+  nsIndex?: number;
+  typeCode?: number;
+  chunkIndex?: number;
+  declaredDataSize?: number;
+  headerCrcOk?: boolean;
+  itemCrcOk?: boolean;
+  dataCrcOk?: boolean;
+};
+
 type NvsEntry = {
   namespace: string;
   key: string;
@@ -176,7 +254,7 @@ type NvsEntry = {
   valuePreview: string;
   length?: number;
   crcOk?: boolean;
-  raw?: { pageIndex: number; entryIndex: number };
+  location?: NvsLocation; // FIX: matches parser output
   warnings?: string[];
 };
 
@@ -220,14 +298,16 @@ const headers = [
   { title: 'Issues', key: 'issues', align: 'center' },
 ];
 
-const hasPartition = computed(() => props.hasPartition && Boolean(props.selectedPartitionId));
+// FIX: avoid shadowing props.hasPartition with a computed of the same name
+const hasPartitionSelected = computed(() => props.hasPartition && Boolean(props.selectedPartitionId));
 
 const validPages = computed(() => (props.result?.pages ?? []).filter(page => Boolean(page?.valid)).length);
 const invalidPages = computed(() => (props.result?.pages?.length ?? 0) - validPages.value);
 
 function unwrapItem(item: unknown) {
   // Vuetify wraps items; keep defensive to avoid UI crashes on malformed data.
-  return (item as any)?.raw ?? item;
+  // In Vuetify 3, item may be either the raw object or a wrapper with `.raw`.
+  return ((item as any)?.raw ?? item) as any;
 }
 
 const namespaceFilterOptions = computed(() => {
@@ -251,6 +331,7 @@ const typeFilterOptions = computed(() => {
 const filteredEntries = computed(() => {
   const result = props.result;
   if (!result) return [];
+
   const ns = namespaceFilter.value;
   const key = keyFilter.value.trim().toLowerCase();
   const type = typeFilter.value;
@@ -301,4 +382,3 @@ const filteredEntries = computed(() => {
   padding-left: 18px;
 }
 </style>
-

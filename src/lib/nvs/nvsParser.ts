@@ -48,7 +48,10 @@ export type NvsEntryInfo = {
   value?: number | string | Uint8Array;
   length?: number;
   crcOk?: boolean;
-  raw?: NvsEntryRawInfo;
+
+  // IMPORTANT: do NOT name this `raw` (Vuetify uses `.raw` for its internal wrapper)
+  location?: NvsEntryRawInfo;
+
   warnings?: string[];
 };
 
@@ -216,7 +219,6 @@ function isVariableLengthType(typeCode: number, version: NvsVersion) {
   return typeCode === ITEM_TYPE.BLOB_DATA;
 }
 
-
 function mapTypeCodeToValueType(typeCode: number, version: NvsVersion): NvsValueType {
   switch (typeCode) {
     case ITEM_TYPE.U8:
@@ -356,7 +358,6 @@ function computeItemCrc32(itemBytes: Uint8Array) {
   crc = crc32Update(crc, itemBytes, 24, 8);
   return crc32Finalize(crc);
 }
-
 
 function combineCrcOk(itemCrcOk: boolean | undefined, dataCrcOk: boolean | undefined) {
   if (itemCrcOk === false || dataCrcOk === false) return false;
@@ -672,7 +673,9 @@ function parseWithVersion(data: Uint8Array, version: NvsVersion): NvsParseResult
         const chunkKey = `${idx.nsIndex}|${idx.key}|${chunkIndex}`;
         const chunk = blobChunks.get(chunkKey);
         if (!chunk) {
-          warningsForEntry.push(`Missing blob chunk ${i + 1}/${idx.chunkCount} (chunkIndex=0x${chunkIndex.toString(16)}).`);
+          warningsForEntry.push(
+            `Missing blob chunk ${i + 1}/${idx.chunkCount} (chunkIndex=0x${chunkIndex.toString(16)}).`,
+          );
           allCrcOk = false;
           continue;
         }
@@ -708,7 +711,7 @@ function parseWithVersion(data: Uint8Array, version: NvsVersion): NvsParseResult
         value: blobData,
         length: idx.dataSize,
         crcOk: allCrcOk,
-        raw: {
+        location: {
           pageIndex: idx.raw.pageIndex,
           entryIndex: idx.raw.entryIndex,
           spanCount: idx.raw.spanCount,
@@ -726,7 +729,8 @@ function parseWithVersion(data: Uint8Array, version: NvsVersion): NvsParseResult
   const entries: NvsEntryInfo[] = [];
   for (const item of parsedItems) {
     const itemWarnings = [...(item.warnings || [])];
-    const namespace = namespaceNameById.get(item.nsIndex) ?? (item.nsIndex === 0 ? 'namespace#0' : `namespace#${item.nsIndex}`);
+    const namespace =
+      namespaceNameById.get(item.nsIndex) ?? (item.nsIndex === 0 ? 'namespace#0' : `namespace#${item.nsIndex}`);
     const key = item.key || '(empty)';
     const valueType = mapTypeCodeToValueType(item.typeCode, version);
 
@@ -738,7 +742,7 @@ function parseWithVersion(data: Uint8Array, version: NvsVersion): NvsParseResult
       itemWarnings.push('Orphan BLOB_DATA chunk (no matching BLOB_IDX found).');
     }
 
-    const raw: NvsEntryRawInfo = {
+    const location: NvsEntryRawInfo = {
       pageIndex: item.pageIndex,
       entryIndex: item.entryIndex,
       spanCount: item.spanCount,
@@ -748,8 +752,8 @@ function parseWithVersion(data: Uint8Array, version: NvsVersion): NvsParseResult
       itemCrcOk: item.itemCrcOk,
       dataCrcOk: item.dataCrcOk,
     };
-    if (typeof item.chunkIndex === 'number') raw.chunkIndex = item.chunkIndex;
-    if (typeof item.declaredDataSize === 'number') raw.declaredDataSize = item.declaredDataSize;
+    if (typeof item.chunkIndex === 'number') location.chunkIndex = item.chunkIndex;
+    if (typeof item.declaredDataSize === 'number') location.declaredDataSize = item.declaredDataSize;
 
     if (valueType === 'string' && item.data) {
       const data = item.data;
@@ -773,7 +777,7 @@ function parseWithVersion(data: Uint8Array, version: NvsVersion): NvsParseResult
         value,
         length: item.declaredDataSize ?? data.length,
         crcOk: combineCrcOk(item.itemCrcOk, item.dataCrcOk),
-        raw,
+        location,
         warnings: itemWarnings.length ? itemWarnings : undefined,
       });
       continue;
@@ -789,7 +793,7 @@ function parseWithVersion(data: Uint8Array, version: NvsVersion): NvsParseResult
         value: data,
         length: item.declaredDataSize ?? data.length,
         crcOk: combineCrcOk(item.itemCrcOk, item.dataCrcOk),
-        raw,
+        location,
         warnings: itemWarnings.length ? itemWarnings : undefined,
       });
       continue;
@@ -802,7 +806,7 @@ function parseWithVersion(data: Uint8Array, version: NvsVersion): NvsParseResult
         key,
         type: valueType,
         valuePreview: '(truncated)',
-        raw,
+        location,
         warnings: [...itemWarnings, 'Truncated item bytes.'],
       });
       continue;
@@ -816,32 +820,86 @@ function parseWithVersion(data: Uint8Array, version: NvsVersion): NvsParseResult
 
     if (valueType === 'u8') {
       const v = valueBytes[0];
-      entries.push({ namespace, key, type: 'u8', valuePreview: toNumberPreview(v), value: v, crcOk: item.itemCrcOk, raw, warnings: itemWarnings.length ? itemWarnings : undefined });
+      entries.push({
+        namespace,
+        key,
+        type: 'u8',
+        valuePreview: toNumberPreview(v),
+        value: v,
+        crcOk: item.itemCrcOk,
+        location,
+        warnings: itemWarnings.length ? itemWarnings : undefined,
+      });
       continue;
     }
     if (valueType === 'i8') {
       const v = (valueBytes[0] << 24) >> 24;
-      entries.push({ namespace, key, type: 'i8', valuePreview: toNumberPreview(v), value: v, crcOk: item.itemCrcOk, raw, warnings: itemWarnings.length ? itemWarnings : undefined });
+      entries.push({
+        namespace,
+        key,
+        type: 'i8',
+        valuePreview: toNumberPreview(v),
+        value: v,
+        crcOk: item.itemCrcOk,
+        location,
+        warnings: itemWarnings.length ? itemWarnings : undefined,
+      });
       continue;
     }
     if (valueType === 'u16') {
       const v = itemView.getUint16(24, true);
-      entries.push({ namespace, key, type: 'u16', valuePreview: toNumberPreview(v), value: v, crcOk: item.itemCrcOk, raw, warnings: itemWarnings.length ? itemWarnings : undefined });
+      entries.push({
+        namespace,
+        key,
+        type: 'u16',
+        valuePreview: toNumberPreview(v),
+        value: v,
+        crcOk: item.itemCrcOk,
+        location,
+        warnings: itemWarnings.length ? itemWarnings : undefined,
+      });
       continue;
     }
     if (valueType === 'i16') {
       const v = itemView.getInt16(24, true);
-      entries.push({ namespace, key, type: 'i16', valuePreview: toNumberPreview(v), value: v, crcOk: item.itemCrcOk, raw, warnings: itemWarnings.length ? itemWarnings : undefined });
+      entries.push({
+        namespace,
+        key,
+        type: 'i16',
+        valuePreview: toNumberPreview(v),
+        value: v,
+        crcOk: item.itemCrcOk,
+        location,
+        warnings: itemWarnings.length ? itemWarnings : undefined,
+      });
       continue;
     }
     if (valueType === 'u32') {
       const v = itemView.getUint32(24, true) >>> 0;
-      entries.push({ namespace, key, type: 'u32', valuePreview: toNumberPreview(v), value: v, crcOk: item.itemCrcOk, raw, warnings: itemWarnings.length ? itemWarnings : undefined });
+      entries.push({
+        namespace,
+        key,
+        type: 'u32',
+        valuePreview: toNumberPreview(v),
+        value: v,
+        crcOk: item.itemCrcOk,
+        location,
+        warnings: itemWarnings.length ? itemWarnings : undefined,
+      });
       continue;
     }
     if (valueType === 'i32') {
       const v = itemView.getInt32(24, true);
-      entries.push({ namespace, key, type: 'i32', valuePreview: toNumberPreview(v), value: v, crcOk: item.itemCrcOk, raw, warnings: itemWarnings.length ? itemWarnings : undefined });
+      entries.push({
+        namespace,
+        key,
+        type: 'i32',
+        valuePreview: toNumberPreview(v),
+        value: v,
+        crcOk: item.itemCrcOk,
+        location,
+        warnings: itemWarnings.length ? itemWarnings : undefined,
+      });
       continue;
     }
     if (valueType === 'u64') {
@@ -855,7 +913,16 @@ function parseWithVersion(data: Uint8Array, version: NvsVersion): NvsParseResult
         asString = `0x${hi.toString(16).padStart(8, '0')}${lo.toString(16).padStart(8, '0')}`;
         itemWarnings.push('BigInt unavailable; showing hex for u64.');
       }
-      entries.push({ namespace, key, type: 'u64', valuePreview: asString, value: asString, crcOk: item.itemCrcOk, raw, warnings: itemWarnings.length ? itemWarnings : undefined });
+      entries.push({
+        namespace,
+        key,
+        type: 'u64',
+        valuePreview: asString,
+        value: asString,
+        crcOk: item.itemCrcOk,
+        location,
+        warnings: itemWarnings.length ? itemWarnings : undefined,
+      });
       continue;
     }
     if (valueType === 'i64') {
@@ -869,7 +936,16 @@ function parseWithVersion(data: Uint8Array, version: NvsVersion): NvsParseResult
         asString = `0x${(hi >>> 0).toString(16).padStart(8, '0')}${lo.toString(16).padStart(8, '0')}`;
         itemWarnings.push('BigInt unavailable; showing hex for i64.');
       }
-      entries.push({ namespace, key, type: 'i64', valuePreview: asString, value: asString, crcOk: item.itemCrcOk, raw, warnings: itemWarnings.length ? itemWarnings : undefined });
+      entries.push({
+        namespace,
+        key,
+        type: 'i64',
+        valuePreview: asString,
+        value: asString,
+        crcOk: item.itemCrcOk,
+        location,
+        warnings: itemWarnings.length ? itemWarnings : undefined,
+      });
       continue;
     }
 
@@ -878,7 +954,7 @@ function parseWithVersion(data: Uint8Array, version: NvsVersion): NvsParseResult
       key,
       type: 'any',
       valuePreview: `type 0x${item.typeCode.toString(16)} ${hexPreview(valueBytes)}`,
-      raw,
+      location,
       warnings: itemWarnings.length ? itemWarnings : undefined,
     });
   }
@@ -915,6 +991,8 @@ export function parseNvsPartition(data: Uint8Array): NvsParseResult {
 
   const score = (res: NvsParseResult) => res.entries.length * 2 + res.namespaces.length - res.errors.length * 3;
   const chosen = score(v2) >= score(v1) ? v2 : v1;
-  chosen.warnings.unshift(`NVS version detection failed: ${detected.reason} (heuristic parse picked v${chosen.version}).`);
+  chosen.warnings.unshift(
+    `NVS version detection failed: ${detected.reason} (heuristic parse picked v${chosen.version}).`,
+  );
   return chosen;
 }
