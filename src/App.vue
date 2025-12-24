@@ -6042,10 +6042,10 @@ async function flashFirmware() {
       offsetNumber,
       true
     );
-
-    await loader.value.hardReset();
-    const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
     flashProgressDialog.value = 100;
+    flashProgressDialog.label = 'Finalizing Flash...'
+    await esptoolClient.value?.syncWithStub();
+    const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
     flashProgressDialog.label = `Flash complete in ${elapsed}s @ ${flashBaudLabel}. Finalizing...`;
     appendLog(`Flashing complete in ${elapsed}s. Device rebooted.`);
   } catch (error) {
