@@ -5,7 +5,8 @@
 - Session log now shows the version of tasmota-webserial-esptool package along with a timestamp
 - Failed detection of flashid is now non-fatal
 
-### Fixed
+### Fixed 
+- FATFS is now using 4096 bytes for logical sectors
 - Ensure ESP32 SPIFFS headers reserve the default 4 bytes of metadata to match the ESP-IDF layout related to ([issue #77](https://github.com/thelastoutpostworkshop/ESPConnect/issues/77)).
 
 ### Internal
