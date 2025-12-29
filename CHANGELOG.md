@@ -12,6 +12,7 @@
 
 ### Internal
 - Serial Monitor start now use native tasmota-webserial-esptool hardreset(false) to enter user firmware
+- Added unit tests
 - Bumps tasmota-webserial-esptool from 7.2.2 to 7.2.3
 - Bumps vuetify from 3.11.4 to 3.11.5
 - Bumps vue-i18n from 9.14.5 to 11.2.7. 
