@@ -7,7 +7,8 @@
 
 ### Fixed 
 - FATFS is now using 4096 bytes for logical sectors ([issue #92](https://github.com/thelastoutpostworkshop/ESPConnect/issues/92)).
-- Ensure ESP32 SPIFFS headers reserve the default 4 bytes of metadata to match the ESP-IDF layout related to ([issue #77](https://github.com/thelastoutpostworkshop/ESPConnect/issues/77)).
+- Replaced the custom TypeScript SPIFFS image handling with a WebAssembly-based implementation for full ESP32 SPIFFS compatibility and reliability.
+  ([issue #77](https://github.com/thelastoutpostworkshop/ESPConnect/issues/77)).
 
 ### Internal
 - Serial Monitor start now use native tasmota-webserial-esptool hardreset(false) to enter user firmware

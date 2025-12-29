@@ -654,7 +654,7 @@ import SessionLogTab from './components/SessionLogTab.vue';
 import SerialMonitorTab from './components/SerialMonitorTab.vue';
 import DisconnectedState from './components/DisconnectedState.vue';
 import registerGuides from './data/register-guides.json';
-import { InMemorySpiffsClient } from './lib/spiffs/spiffsClient';
+import { createSpiffsFromImage } from './wasm/spiffs';
 import { useFatfsManager, useLittlefsManager, useSpiffsManager } from './composables/useFilesystemManagers';
 import { useDialogs } from './composables/useDialogs';
 import { getLanguage, setLanguage, SupportedLocale } from './plugins/i18n';
@@ -2504,27 +2504,32 @@ function resetSpiffsState() {
   spiffsState.sessionBackupDone = false;
   spiffsState.diagnostics = [];
   spiffsState.baselineFiles = [];
-  spiffsState.usage = {
-    capacityBytes: 0,
-    usedBytes: 0,
-    freeBytes: 0,
-  };
+  spiffsState.usage = getDefaultSpiffsUsage();
   closeSpiffsViewer();
   spiffsState.uploadBlocked = false;
   spiffsState.uploadBlockedReason = '';
 }
 
+function getDefaultSpiffsUsage() {
+  return {
+    capacityBytes: 0,
+    usedBytes: 0,
+    freeBytes: 0,
+  };
+}
+
 // Update SPIFFS usage info if provided by the client.
-function updateSpiffsUsage() {
+async function updateSpiffsUsage() {
   if (spiffsState.client && typeof spiffsState.client.getUsage === 'function') {
-    spiffsState.usage = spiffsState.client.getUsage();
-  } else {
-    spiffsState.usage = {
-      capacityBytes: 0,
-      usedBytes: 0,
-      freeBytes: 0,
-    };
+    try {
+      const usage = await spiffsState.client.getUsage();
+      spiffsState.usage = usage ?? getDefaultSpiffsUsage();
+      return;
+    } catch (error) {
+      console.error('[ESPConnect] Failed to read SPIFFS usage', error);
+    }
   }
+  spiffsState.usage = getDefaultSpiffsUsage();
 }
 
 // Reset LittleFS state to initial defaults.
@@ -2726,7 +2731,7 @@ async function loadSpiffsPartition(partition: FilesystemPartition) {
     spiffsState.lastReadImage = image;
     let client;
     try {
-      client = await InMemorySpiffsClient.fromImage(image);
+      client = await createSpiffsFromImage(image);
     } catch (error) {
       spiffsState.error = formatErrorMessage(error);
       spiffsState.readOnly = true;
@@ -2735,7 +2740,7 @@ async function loadSpiffsPartition(partition: FilesystemPartition) {
       spiffsState.client = null;
       spiffsState.files = [];
       spiffsState.baselineFiles = [];
-      updateSpiffsUsage();
+      await updateSpiffsUsage();
       return;
     }
     spiffsState.client = client;
@@ -2746,7 +2751,7 @@ async function loadSpiffsPartition(partition: FilesystemPartition) {
     }));
     spiffsState.dirty = false;
     spiffsState.backupDone = false;
-    updateSpiffsUsage();
+    await updateSpiffsUsage();
     const count = spiffsState.files.length;
     spiffsState.status = count === 1 ? 'Loaded 1 file.' : `Loaded ${count} files.`;
     appendLog(
@@ -2762,7 +2767,7 @@ async function loadSpiffsPartition(partition: FilesystemPartition) {
       spiffsState.baselineFiles = [];
       spiffsState.dirty = false;
       spiffsState.backupDone = false;
-      updateSpiffsUsage();
+      await updateSpiffsUsage();
       spiffsState.error = null;
       spiffsState.readOnly = false;
       spiffsState.readOnlyReason = '';
@@ -2787,7 +2792,7 @@ async function refreshSpiffsListing() {
     return;
   }
   spiffsState.files = await spiffsState.client.list();
-  updateSpiffsUsage();
+  await updateSpiffsUsage();
 }
 
 // Mark the SPIFFS state as dirty and optionally set a status message.
@@ -3153,6 +3158,7 @@ async function handleSpiffsView(name: string) {
     }
   } catch (error) {
     spiffsViewerDialog.error = formatErrorMessage(error);
+    console.error('[ESPConnect] SPIFFS preview failed', { name, error });
   } finally {
     spiffsViewerDialog.loading = false;
   }

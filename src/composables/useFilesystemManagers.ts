@@ -1,6 +1,7 @@
 import { reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { LittlefsEntry } from '../types/littlefs';
+import type { Spiffs } from '../wasm/spiffs';
 
 export interface FatFSEntry {
   path: string;
@@ -13,16 +14,7 @@ export interface LittleFSEntry {
   type: "file" | "dir";
 }
 
-export type SpiffsClient = {
-  list: () => Promise<Array<{ name: string; size: number; type: 'file' | 'dir' }>>;
-  read: (path: string) => Promise<Uint8Array>;
-  write: (path: string, data: Uint8Array) => Promise<void>;
-  remove: (path: string) => Promise<void>;
-  format: () => Promise<void>;
-  toImage: () => Promise<Uint8Array>;
-  getUsage?: () => { capacityBytes: number; usedBytes: number; freeBytes: number };
-  canFit?: (path: string, size: number) => boolean;
-};
+export type SpiffsClient = Spiffs;
 
 export type LittlefsClient = {
   list?: (path?: string) =>  LittleFSEntry[];
