@@ -1,0 +1,71 @@
+name: "Issue report"
+description: "Report bugs, regressions, or request improvements."
+title: "[Issue]: "
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for taking the time to file an issue."
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: "Issue type"
+      options:
+        - "Bug"
+        - "Feature request"
+        - "Documentation"
+        - "Question"
+    validations:
+      required: true
+  - type: input
+    id: summary
+    attributes:
+      label: "Summary"
+      description: "Short, clear description of the issue."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Steps to reproduce (for bugs)"
+      description: "List the minimal steps to reproduce the problem."
+      placeholder: "1. ...\n2. ...\n3. ..."
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected behavior"
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Actual behavior"
+  - type: input
+    id: app_version
+    attributes:
+      label: "App version"
+      description: "From Settings > About, or include commit SHA if built from source."
+  - type: dropdown
+    id: os
+    attributes:
+      label: "Operating system"
+      options:
+        - "Windows"
+        - "macOS"
+        - "Linux"
+        - "Other"
+  - type: input
+    id: device
+    attributes:
+      label: "Device/board"
+      description: "Board model or USB device used, if applicable."
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Logs or screenshots"
+      description: "Paste logs, stack traces, or attach screenshots."
+      render: "shell"
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Checklist"
+      options:
+        - label: "I searched for existing issues."
+        - label: "I can reproduce this on the latest release."
