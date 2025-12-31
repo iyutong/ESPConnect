@@ -61,6 +61,14 @@ body:
       label: "Logs or screenshots"
       description: "Paste logs, stack traces, or attach screenshots."
       render: "shell"
+  - type: textarea
+    id: session_log
+    attributes:
+      label: "Session log (required)"
+      description: "Paste the full content of the Session Log tab."
+      render: "shell"
+    validations:
+      required: true
   - type: checkboxes
     id: checklist
     attributes:
