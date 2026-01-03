@@ -19,6 +19,12 @@ npm run dev
 ## Code style
 - Run typecheck: `npm run typecheck`
 
+## E2E tests
+- Install Playwright browsers (first time only): `npx playwright install`
+- Run E2E tests: `npm run test:e2e`
+- The E2E runner starts Vite with `VITE_E2E=1` and aliases the WebSerial service layer to a mock (`src/services/esptoolClient.mock.ts`).
+- You can also open the app with `?e2e=1` to force the E2E path locally when running `npm run dev`.
+
 ## Translations (i18n)
 - Keep strings consistent with existing keys.
 - Avoid changing formatting/whitespace unless required.

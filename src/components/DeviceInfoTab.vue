@@ -1,6 +1,7 @@
 <template>
   <Transition name="device-info-reveal" mode="out-in" appear>
-    <div v-if="details" :key="detailsKey" class="device-info-wrapper device-info-wrapper--connected">
+    <div v-if="details" :key="detailsKey" class="device-info-wrapper device-info-wrapper--connected"
+      data-testid="device-summary">
       <v-card class="device-card" elevation="0">
         <v-card-text class="device-card__body">
           <div class="device-header">

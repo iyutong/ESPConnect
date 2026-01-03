@@ -29,12 +29,12 @@
     <v-app-bar app :elevation="8">
       <div class="status-actions">
         <v-btn color="primary" variant="outlined" density="comfortable"
-          :disabled="!serialSupported || connected || busy" @click="connect">
+          :disabled="!serialSupported || connected || busy" @click="connect" data-testid="connect-btn">
           <v-icon start>mdi-usb-flash-drive</v-icon>
           {{ t('actions.connect') }}
         </v-btn>
         <v-btn color="error" variant="outlined" density="comfortable" :disabled="!connected || busy"
-          @click="disconnect">
+          @click="disconnect" data-testid="disconnect-btn">
           <v-icon start>mdi-close-circle</v-icon>
           {{ t('actions.disconnect') }}
         </v-btn>
@@ -75,7 +75,7 @@
         <v-icon>{{ themeIcon }}</v-icon>
       </v-btn>
       <v-chip :color="connected ? 'success' : 'grey-darken-1'" class="text-capitalize" variant="elevated"
-        density="comfortable">
+        density="comfortable" data-testid="connection-status">
         <template #prepend>
           <v-icon v-if="connected" start class="status-chip-icon status-chip-icon--connected">
             mdi-usb-port
@@ -638,7 +638,8 @@
           </v-card>
         </v-dialog>
 
-        <v-snackbar v-model="toast.visible" :timeout="toast.timeout" :color="toast.color" location="bottom right">
+        <v-snackbar v-model="toast.visible" :timeout="toast.timeout" :color="toast.color" location="bottom right"
+          data-testid="toast-container">
           {{ toast.message }}
         </v-snackbar>
       </v-container>
@@ -3936,7 +3937,11 @@ function resolveEmbeddedPsram(
   return null;
 }
 
-const serialSupported = 'serial' in navigator;
+const isE2E =
+  import.meta.env.VITE_E2E === '1' ||
+  import.meta.env.VITE_E2E === 'true' ||
+  (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('e2e'));
+const serialSupported = isE2E || 'serial' in navigator;
 const { t } = useI18n();
 const connected = ref(false);
 const busy = ref(false);
@@ -5441,6 +5446,10 @@ const connectionChipLabel = computed(() => {
     return t('status.disconnected');
   }
 
+  if (isE2E) {
+    return t('status.connected');
+  }
+
   const name = chipDetails.value?.name?.trim();
   return name || t('status.connected');
 });
@@ -6568,6 +6577,7 @@ async function handleComputeMd5() {
     const result = await client.flashMd5sum(offset, length);
     md5Status.value = null;
     md5Result.value = result;
+    showToast('MD5 checksum computed.', { color: 'success' });
     appendLog(
       `Computed MD5 for 0x${offset.toString(16).toUpperCase()} (${length} bytes): ${result}`,
       '[ESPConnect-Debug]'
@@ -6642,7 +6652,7 @@ async function downloadFlashRegion(offset: number, length: number, options: Down
 
   downloadCancelRequested.value = false;
 
-  const chunkBuffers = [];
+  const chunkBuffers: Uint8Array[] = [];
   const chunkSize = Math.max(0x1000, Math.min(MAX_CHUNK_SIZE, length));
   let totalReceived = 0;
   let buffer = null;

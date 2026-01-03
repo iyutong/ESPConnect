@@ -195,7 +195,8 @@
       </v-alert>
     </v-card-text>
   </v-card>
-  <v-card class="tools-card mt-6" variant="tonal" prepend-icon="mdi-shield-check-outline">
+  <v-card class="tools-card mt-6" variant="tonal" prepend-icon="mdi-shield-check-outline"
+    data-testid="tool-integrity-card">
     <template v-slot:title>
       <span class="font-weight-black">{{ t('flashFirmware.integrity.title') }}</span>
     </template>
@@ -234,7 +235,8 @@
         </v-col>
       </v-row>
       <div class="tools-card__actions">
-        <v-btn color="primary" variant="tonal" :disabled="busy || maintenanceBusy" @click="emit('compute-md5')">
+        <v-btn color="primary" variant="tonal" :disabled="busy || maintenanceBusy" @click="emit('compute-md5')"
+          data-testid="tool-integrity-run">
           <v-icon start>mdi-fingerprint</v-icon>
           {{ t('flashFirmware.integrity.computeButton') }}
         </v-btn>
