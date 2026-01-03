@@ -153,7 +153,7 @@
         jtagProtection: 'Protection JTAG',
         usbProtection: 'Protection USB',
         downloadModeCaches: 'Méthode cache de téléversements',
-        securityNote: 'NoteS quant à la sécurité',
+        securityNote: 'Notes quant à la sécurité',
         pwmLedc: 'PWM/LEDC',
         usbBridge: 'Pontage USB',
         connectionBaud: 'Vitesse de connexion',
