@@ -2,6 +2,9 @@
 
 ## 1.1.5-preview
 
+### Improvement
+- Serial Monitor now renders ANSI color/style escape sequences in the output.
+
 ### Internal
 - Removed the decorateLoader shim since it's no longer needed with tasmota-webserial-esptool
 - Added Playwright E2E scaffolding with a mocked WebSerial/esptool client
