@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.5-preview
+## 1.1.5-preview-2
 
 ### Improvement
 - Serial Monitor now renders ANSI color/style escape sequences in the output.
@@ -10,10 +10,12 @@
 - Removed the decorateLoader shim since it's no longer needed with tasmota-webserial-esptool
 - Added Playwright E2E scaffolding with a mocked WebSerial/esptool client
 - Added Vitest for tasmota-webserial-esptool
-- Bump tasmota-webserial-esptool 7.2.3 to 7.2.6
+- Bump tasmota-webserial-esptool 7.2.3 to 7.3.3
 - Bump vue-i18n 11.2.7 to 11.2.8
 - Bump vuetify 3.1.15 to 3.1.16
 - Bump @types/node from 22.19.3 to 25.0.3
+- Bump sass from 1.97.1 to 1.97.2
+- Bump vue-tsc from 3.2.1 to 3.2.2
 
 ## 1.1.4
 ### Improvement
