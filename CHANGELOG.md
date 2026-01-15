@@ -2,11 +2,11 @@
 
 ## 1.1.6-preview
 ### Improvement
-- Flash tools now refresh the partition table after full erase or firmware flashes so the partitions view stays accurate ([issue #104](https://github.com/thelastoutpostworkshop/ESPConnect/issues/104)).
-- Partitions empty state now distinguishes between disconnected devices and connected ESP32s with no partition table ([issue #104](https://github.com/thelastoutpostworkshop/ESPConnect/issues/104)).
 - Serial Monitor now lets you send text input, including Ctrl+C, suggest by ator1811 ([issue #90](https://github.com/thelastoutpostworkshop/ESPConnect/issues/90)).
 
 ### Fixed
+- Flash tools now refresh the partition table after full erase or firmware flashes so the partitions view stays accurate ([issue #104](https://github.com/thelastoutpostworkshop/ESPConnect/issues/104)).
+- Partitions empty state now distinguishes between disconnected devices and connected ESP32s with no partition table ([issue #104](https://github.com/thelastoutpostworkshop/ESPConnect/issues/104)).
 - OTA Apps tab now reads both OTADATA sectors so the active slot indicator updates correctly after OTA swaps ([issue #108](https://github.com/thelastoutpostworkshop/ESPConnect/issues/108)).
 
 ### Internal runtime
