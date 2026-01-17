@@ -4625,25 +4625,23 @@ function extractAppDescriptor(buffer: Uint8Array): AppDescriptor | null {
 
 // Scan application partitions to build metadata and identify the active slot.
 const OTA_DATA_SECTOR_BYTES = 0x1000;
+
 async function analyzeAppPartitions(loaderInstance: ESPLoader, partitions: PartitionTableEntry[]) {
   appPartitions.value = [];
   activeAppSlotId.value = null;
   appMetadataError.value = null;
-  appActiveSummary.value = 'Active slot unknown.';
-  if (!loaderInstance || !Array.isArray(partitions) || !partitions.length) {
-    return;
-  }
+  appActiveSummary.value = "Active slot unknown.";
+
+  if (!loaderInstance || !Array.isArray(partitions) || !partitions.length) return;
 
   const appEntries = partitions
     .filter(entry => entry && entry.type === 0x00)
     .map(entry => ({ ...entry }))
     .sort((a, b) => a.offset - b.offset);
 
-  if (!appEntries.length) {
-    return;
-  }
+  if (!appEntries.length) return;
 
-  const factoryEntry = appEntries.find(entry => entry.subtype === 0x00);
+  const factoryEntry = appEntries.find(entry => entry.subtype === 0x00) ?? null;
   const otaEntries = appEntries
     .filter(entry => entry.subtype >= 0x10 && entry.subtype <= 0x1f)
     .sort((a, b) => (a.subtype ?? 0) - (b.subtype ?? 0));
@@ -4653,79 +4651,71 @@ async function analyzeAppPartitions(loaderInstance: ESPLoader, partitions: Parti
   let otadataSelectionUnavailable = false;
   let activeSlotFromOtadata = false;
 
-  const otadataEntry = partitions.find(entry => entry.type === 0x01 && entry.subtype === 0x02);
+  // ---- Read otadata (DATA/OTA = type 0x01, subtype 0x00) ----
+  const otadataEntry = partitions.find(entry => entry.type === 0x01 && entry.subtype === 0x00) ?? null;
+  appendLog(
+    `otadataEntry: type=0x${otadataEntry?.type?.toString(16)} subtype=0x${otadataEntry?.subtype?.toString(16)} offset=0x${otadataEntry?.offset?.toString(16)} size=${otadataEntry?.size}`
+  );
+
+  const hex = (buf: Uint8Array) =>
+    Array.from(buf).map(b => b.toString(16).padStart(2, "0")).join(" ");
+
   if (otadataEntry && otaEntries.length) {
     try {
-      const maxSectors = Math.min(2, Math.max(1, otaEntries.length));
+      // Always read the two otadata sectors (0x2000) from the otadata partition start.
       const desiredLength = OTA_DATA_SECTOR_BYTES * 2; // 0x2000
       const primaryBlock = await loaderInstance.readFlash(otadataEntry.offset, desiredLength);
 
+      // Debug: show the first 32 bytes of each sector.
+      appendLog(`otadata sector0[0..31]=${hex(primaryBlock.subarray(0x0000, 0x0020))}`);
+      appendLog(`otadata sector1[0..31]=${hex(primaryBlock.subarray(0x1000, 0x1020))}`);
 
-      const otadataChunks: Uint8Array[] = [];
-      otadataChunks.push(primaryBlock.subarray(0, OTA_SELECT_ENTRY_SIZE));
+      // Debug: parse seq/crc directly from the same buffer (sector starts).
+      const seq0 = readUint32LE(primaryBlock, 0x0000);
+      const crc0 = readUint32LE(primaryBlock, 0x0000 + 28);
+      const seq1 = readUint32LE(primaryBlock, 0x1000);
+      const crc1 = readUint32LE(primaryBlock, 0x1000 + 28);
 
-      // Try to extract the mirrored entry from the same block first; fallback to a direct read.
-      const mirroredStart = OTA_DATA_SECTOR_BYTES;
-      if (primaryBlock.length >= mirroredStart + OTA_SELECT_ENTRY_SIZE) {
-        otadataChunks.push(primaryBlock.subarray(mirroredStart, mirroredStart + OTA_SELECT_ENTRY_SIZE));
-      } else {
-        const secondaryOffset = otadataEntry.offset + OTA_DATA_SECTOR_BYTES;
-        try {
-          const secondaryOtadata = await loaderInstance.readFlash(secondaryOffset, OTA_SELECT_ENTRY_SIZE);
-          if (secondaryOtadata?.length) {
-            otadataChunks.push(secondaryOtadata);
-          }
-        } catch (error) {
-          // Secondary otadata sector is optional; ignore read failures and fall back to primary.
-          appendLog('Secondary OTA data sector unavailable', error);
-        }
-      }
+      appendLog(
+        `otadata parsed: seq0=${seq0} crc0=0x${(crc0 ?? 0).toString(16)} seq1=${seq1} crc1=0x${(crc1 ?? 0).toString(16)}`
+      );
 
-      const sectorCount = 2; // ESP-IDF uses 2 sectors for otadata
-      const combinedOtadata = new Uint8Array(OTA_DATA_SECTOR_BYTES * sectorCount); // 0x2000
+      // Detect active slot from REAL-layout otadata (primaryBlock is already 0x2000).
+      const otaDetected = detectActiveOtaSlot(primaryBlock, otaEntries);
 
-      // Copy the first entry header to 0x0000
-      combinedOtadata.set(otadataChunks[0].subarray(0, OTA_SELECT_ENTRY_SIZE), 0x0000);
-
-      // Copy the mirrored entry header to 0x1000 if present
-      if (otadataChunks.length > 1) {
-        combinedOtadata.set(otadataChunks[1].subarray(0, OTA_SELECT_ENTRY_SIZE), 0x1000);
-      }
-
-      const detected = detectActiveOtaSlot(combinedOtadata, otaEntries);
-
-      if (detected.slotId) {
-        activeSlotId = detected.slotId;
+      if (otaDetected.slotId) {
+        activeSlotId = otaDetected.slotId;
         activeSlotFromOtadata = true;
-      } else if (detected.summary === 'No valid OTA selection found') {
+      } else if (otaDetected.summary === "No valid OTA selection found") {
         otadataSelectionUnavailable = true;
       }
 
-      activeSummary = detected.summary;
+      activeSummary = otaDetected.summary;
     } catch (error) {
-      appendLog('Failed to read OTA data partition', error);
-      appMetadataError.value = 'Unable to read OTA metadata.';
+      appendLog("Failed to read OTA data partition", error);
+      appMetadataError.value = "Unable to read OTA metadata.";
     }
   }
 
+  // If otadata didn’t give a slot, fall back (factory if present, else unknown for now).
   if (!activeSlotId && !otadataSelectionUnavailable) {
     if (factoryEntry) {
-      activeSlotId = 'factory';
-      activeSummary = activeSummary ?? 'Active slot: factory (fallback)';
+      activeSlotId = "factory";
+      activeSummary = activeSummary ?? "Active slot: factory (fallback)";
     } else {
-      activeSummary = activeSummary ?? 'Active slot unknown.';
+      activeSummary = activeSummary ?? "Active slot unknown.";
     }
   }
 
-  if (!activeSummary) {
-    activeSummary = 'Active slot unknown.';
-  }
+  if (!activeSummary) activeSummary = "Active slot unknown.";
 
+  // ---- Scan app partitions and extract metadata ----
   const results: AppPartitionMetadata[] = [];
+
   for (const entry of appEntries) {
     const slotLabel =
       entry.subtype === 0x00
-        ? 'factory'
+        ? "factory"
         : entry.subtype >= 0x10 && entry.subtype <= 0x1f
           ? `ota_${entry.subtype - 0x10}`
           : `subtype_0x${entry.subtype.toString(16)}`;
@@ -4733,6 +4723,7 @@ async function analyzeAppPartitions(loaderInstance: ESPLoader, partitions: Parti
     const readSize = Math.min(APP_SCAN_LENGTH, entry.size || APP_SCAN_LENGTH);
     let buffer: Uint8Array | null = null;
     let imageError: string | null = null;
+
     if (readSize >= 24) {
       try {
         buffer = await loaderInstance.readFlash(entry.offset, readSize);
@@ -4741,12 +4732,13 @@ async function analyzeAppPartitions(loaderInstance: ESPLoader, partitions: Parti
         appendLog(`Failed to read app partition ${entry.label || slotLabel}`, error);
       }
     } else {
-      imageError = 'Partition too small to contain app image header.';
+      imageError = "Partition too small to contain app image header.";
     }
 
     const offsetHex = `0x${entry.offset.toString(16).toUpperCase()}`;
     const sizeText = formatBytes(entry.size) ?? `${entry.size} bytes`;
     const displayName = entry.label?.trim() || slotLabel.toUpperCase();
+
     const appInfo: AppPartitionMetadata = {
       key: `${slotLabel}-${entry.offset}`,
       label: displayName,
@@ -4778,14 +4770,16 @@ async function analyzeAppPartitions(loaderInstance: ESPLoader, partitions: Parti
     }
 
     if (!buffer || buffer.length < 8) {
-      appInfo.error = 'App header truncated.';
+      appInfo.error = "App header truncated.";
       results.push(appInfo);
       continue;
     }
 
+    // If flash encryption is enabled, header magic won’t be readable.
+    // The partition can still be a valid app slot; we just can’t parse metadata.
     if (buffer[0] !== APP_IMAGE_HEADER_MAGIC) {
-      appInfo.valid = true; // partition exists; metadata just not readable
-      appInfo.error = 'Image header unreadable (likely flash-encrypted).';
+      appInfo.valid = true;
+      appInfo.error = "Image header unreadable (likely flash-encrypted).";
       results.push(appInfo);
       continue;
     }
@@ -4794,9 +4788,7 @@ async function analyzeAppPartitions(loaderInstance: ESPLoader, partitions: Parti
     appInfo.segmentCount = buffer[1];
     appInfo.entryAddress = readUint32LE(buffer, 4);
     appInfo.entryAddressHex =
-      appInfo.entryAddress != null
-        ? `0x${appInfo.entryAddress.toString(16).toUpperCase()}`
-        : null;
+      appInfo.entryAddress != null ? `0x${appInfo.entryAddress.toString(16).toUpperCase()}` : null;
 
     const descriptor = extractAppDescriptor(buffer);
     if (descriptor) {
@@ -4806,30 +4798,31 @@ async function analyzeAppPartitions(loaderInstance: ESPLoader, partitions: Parti
       appInfo.buildTime = descriptor.time || null;
       appInfo.buildDate = descriptor.date || null;
       appInfo.idfVersion = descriptor.idfVersion || null;
-      const builtParts = [];
+
+      const builtParts: string[] = [];
       if (descriptor.date) builtParts.push(descriptor.date);
       if (descriptor.time) builtParts.push(descriptor.time);
-      appInfo.built = builtParts.join(' ').trim() || null;
+      appInfo.built = builtParts.join(" ").trim() || null;
     }
 
     results.push(appInfo);
   }
 
+  // ---- Resolve active slot for UI ----
   let resolvedSlotId: string | null = activeSlotId;
   let resolvedSummary = activeSummary;
   const activeInfoCandidate = resolvedSlotId ? results.find(info => info.slotLabel === resolvedSlotId) ?? null : null;
 
-  if (
-    !otadataSelectionUnavailable &&
-    !activeSlotFromOtadata &&
-    (!activeInfoCandidate || !activeInfoCandidate.valid)
-  ) {
+  // Only do “infer active slot from valid images” when we DID NOT get a slot from otadata.
+  if (!otadataSelectionUnavailable && !activeSlotFromOtadata && (!activeInfoCandidate || !activeInfoCandidate.valid)) {
     const fallbackCandidates = [
-      results.find(info => info.valid && info.slotLabel === 'factory'),
-      results.find(info => info.valid && info.slotLabel.startsWith('ota_')),
+      results.find(info => info.valid && info.slotLabel === "factory"),
+      results.find(info => info.valid && info.slotLabel.startsWith("ota_")),
       results.find(info => info.valid),
     ].filter((candidate): candidate is AppPartitionMetadata => Boolean(candidate));
+
     const fallbackInfo = fallbackCandidates.length ? fallbackCandidates[0] : null;
+
     if (fallbackInfo) {
       resolvedSlotId = fallbackInfo.slotLabel;
       resolvedSummary =
@@ -4838,19 +4831,15 @@ async function analyzeAppPartitions(loaderInstance: ESPLoader, partitions: Parti
           : `Active slot inferred: ${fallbackInfo.slotLabel}.`;
     } else if (activeInfoCandidate && !activeInfoCandidate.valid) {
       resolvedSlotId = null;
-      resolvedSummary = 'Active slot invalid.';
+      resolvedSummary = "Active slot invalid.";
     }
-  } else if (
-    !otadataSelectionUnavailable &&
-    !activeSlotFromOtadata &&
-    (!activeInfoCandidate || !activeInfoCandidate.valid)
-  ) {
-    // existing fallback logic unchanged...
   } else if (activeSlotFromOtadata && activeInfoCandidate && !activeInfoCandidate.valid) {
+    // Keep the otadata-selected slot even if we can’t parse the header/metadata.
     resolvedSummary =
       `Active slot from otadata: ${activeInfoCandidate.slotLabel}. ` +
       `Image metadata unavailable (encrypted or unreadable header).`;
   } else if (otadataSelectionUnavailable) {
+    // If you prefer bootloader-style fallback, replace this branch with the fallback logic.
     resolvedSlotId = null;
     resolvedSummary = activeSummary;
   }
@@ -4864,6 +4853,7 @@ async function analyzeAppPartitions(loaderInstance: ESPLoader, partitions: Parti
   appActiveSummary.value = resolvedSummary;
   appMetadataLoaded.value = true;
 }
+
 
 // Reset cached application metadata.
 function resetAppMetadata() {
