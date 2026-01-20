@@ -162,7 +162,7 @@ const { partitionSegments, formattedPartitions, unusedSummary, flashSizeLabel, c
 const { t } = useI18n();
 
 const PARTITION_BUILDER_URL =
-  'https://thelastoutpostworkshop.github.io/ESP32PartitionBuilder/';
+  'https://p.esp.iyutong.cn/';
 
 const showUnusedAlert = computed(() => Boolean(unusedSummary.value));
 const unusedReadable = computed(() => unusedSummary.value?.readable ?? '');
