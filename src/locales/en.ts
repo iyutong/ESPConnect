@@ -46,6 +46,8 @@
     emptyState: 'Logs will appear here once actions begin.',
     copySuccess: 'Session log copied to clipboard.',
     copyError: 'Unable to copy log. Please try again.',
+    chipMetadata: 'Chip metadata: pkgVersion={pkgVersion}, chipRevision={chipRevision}',
+    chipId: 'Chip ID: {chipId}',
   },
   serialMonitor: {
     title: 'Serial Monitor',

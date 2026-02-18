@@ -19,6 +19,7 @@ Agents may create, edit, move, and delete files; refactor code when instructed; 
 - No hardcoded UI strings
 - No DOM-based translation logic
 - Serial/device output must never be translated
+- Session log entries must remain English-only and must not be translated
 - Translation keys must be namespaced (e.g., `common.*`, `serial.*`)
 - Keep keys consistent with existing structure
 - Preserve formatting/whitespace unless required

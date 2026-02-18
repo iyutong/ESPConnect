@@ -35,6 +35,7 @@ npm run dev
 - Keep strings consistent with existing keys.
 - Avoid changing formatting/whitespace unless required.
 - Please do not translate technical terms unless the UI already does so consistently.
+- Session log entries must remain English-only and must not be translated.
 - Preserve placeholders exactly (e.g. `{fs}`, `{language}`, `{count}`) so the interpolation tokens remain valid across locales.
 - When contributing a new language:
   1. Create a locale file under `src/locales/` (e.g. `fr.ts`) mirroring the structure in `en.ts` and translate each string section (`app`, `navigation`, `deviceInfo`, etc.).

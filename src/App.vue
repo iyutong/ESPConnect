@@ -6063,9 +6063,35 @@ async function connect() {
     connected.value = true;
     appendLog(`Handshake complete with ${esp.chipName}. Collecting device details...`, '[ESPConnect-Debug]');
 
+    const englishUnknown = t('deviceInfo.unknown', {}, { locale: 'en' });
+    const chipIdLabel =
+      typeof esp.chipId === 'number' && Number.isFinite(esp.chipId)
+        ? `0x${esp.chipId.toString(16).toUpperCase()}`
+        : englishUnknown;
+    appendLog(
+      t('sessionLog.chipId', { chipId: chipIdLabel }, { locale: 'en' }),
+      '[ESPConnect-Debug]'
+    );
+
     lastFlashBaud.value = currentBaud.value;
 
     const metadata = await client.readChipMetadata();
+    const pkgVersionLabel =
+      typeof metadata.pkgVersion === 'number' && !Number.isNaN(metadata.pkgVersion)
+        ? String(metadata.pkgVersion)
+        : englishUnknown;
+    const chipRevisionLabel =
+      typeof metadata.chipRevision === 'number' && !Number.isNaN(metadata.chipRevision)
+        ? String(metadata.chipRevision)
+        : englishUnknown;
+    appendLog(
+      t(
+        'sessionLog.chipMetadata',
+        { pkgVersion: pkgVersionLabel, chipRevision: chipRevisionLabel },
+        { locale: 'en' }
+      ),
+      '[ESPConnect-Debug]'
+    );
 
     const descriptionRaw = metadata.description ?? esp.chipName;
     const featuresRaw = metadata.features;

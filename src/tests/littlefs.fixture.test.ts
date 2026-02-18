@@ -10,11 +10,16 @@ const MICROPY_FIXTURE_PATH = path.resolve(
   process.cwd(),
   'src/tests/fixtures/fs-images/littlefs/littlefs-micropython1-25.bin',
 );
+const ESP32_S3_FIXTURE_PATH = path.resolve(
+  process.cwd(),
+  'src/tests/fixtures/fs-images/littlefs/littlefs_v2_0.bin',
+);
 const DEFAULT_WASM_PATH = path.resolve(process.cwd(), 'wasm/littlefs/littlefs.wasm');
 const FALLBACK_WASM_PATH = path.resolve(process.cwd(), 'src/wasm/littlefs/littlefs.wasm');
 
 const fixtureImage = new Uint8Array(readFileSync(FIXTURE_PATH));
 const micropythonImage = new Uint8Array(readFileSync(MICROPY_FIXTURE_PATH));
+const esp32S3Image = new Uint8Array(readFileSync(ESP32_S3_FIXTURE_PATH));
 const wasmURL = pathToFileURL(existsSync(DEFAULT_WASM_PATH) ? DEFAULT_WASM_PATH : FALLBACK_WASM_PATH).href;
 
 const textDecoder = new TextDecoder();
@@ -24,6 +29,7 @@ const KNOWN_FILE = '/info.txt';
 const RENAMED_FILE = '/info-renamed.txt';
 const NESTED_FILE_NAME = 'nested_info.txt';
 const MICROPY_BOOT_FILE = '/boot.py';
+const ESP32_S3_KNOWN_FILES = ['/_persist.json', '/test.mp3'];
 
 const LITTLEFS_JS_PATH = path.resolve(process.cwd(), 'src/wasm/littlefs/littlefs.js');
 const LITTLEFS_UMD_ORIGINAL =
@@ -74,6 +80,11 @@ const createFixtureLittleFS = async () => {
 const createMicropythonLittleFS = async () => {
   const { createLittleFSFromImage } = await loadLittleFSModule();
   return createLittleFSFromImage(new Uint8Array(micropythonImage), { wasmURL });
+};
+
+const createEsp32S3LittleFS = async () => {
+  const { createLittleFSFromImage } = await loadLittleFSModule();
+  return createLittleFSFromImage(new Uint8Array(esp32S3Image), { wasmURL });
 };
 
 type LittleFSEntry = { path: string; type: 'file' | 'dir'; size?: number; name?: string };
@@ -242,5 +253,20 @@ describe('littlefs fixture image', () => {
     const bootEntry = entries.find((entry) => entry.path === MICROPY_BOOT_FILE);
     expect(bootEntry).toBeDefined();
     expect(bootEntry?.type).toBe('file');
+  });
+
+  it('mounts ESP32-S3 LittleFS fixture and exposes known files', async () => {
+    const lfs = await createEsp32S3LittleFS();
+    const entries = listAllEntries(lfs);
+    const { DISK_VERSION_2_0 } = await loadLittleFSModule();
+
+    expect(entries.length).toBeGreaterThan(0);
+    expect(lfs.getDiskVersion()).toBe(DISK_VERSION_2_0);
+
+    for (const filePath of ESP32_S3_KNOWN_FILES) {
+      const entry = entries.find((candidate) => candidate.path === filePath);
+      expect(entry).toBeDefined();
+      expect(entry?.type).toBe('file');
+    }
   });
 });
