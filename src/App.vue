@@ -666,8 +666,8 @@ import registerGuides from './data/register-guides.json';
 import { createSpiffsFromImage, SpiffsErrorCode } from './wasm/spiffs';
 import { useFatfsManager, useLittlefsManager, useSpiffsManager } from './composables/useFilesystemManagers';
 import { useDialogs } from './composables/useDialogs';
-import { getLanguage, setLanguage, SupportedLocale } from './plugins/i18n';
-import { readPartitionTable } from './utils/partitions';
+import { getLanguage, setLanguage, supportedLocales, SupportedLocale } from './plugins/i18n';
+import { readPartitionTable, probePartitionTableOffset } from './utils/partitions';
 import { detectActiveOtaSlot } from './utils/ota';
 import type { ESPLoader } from 'tasmota-webserial-esptool';
 import { createEsptoolClient, requestSerialPort, type CompatibleTransport, type EsptoolClient, type StatusPayload } from './services/esptoolClient';
@@ -3962,6 +3962,7 @@ let eraseFillBlock: number[] | null = null;
 const selectedBaud = ref<BaudRate>(DEFAULT_FLASH_BAUD as BaudRate);
 const baudrateOptions = SUPPORTED_BAUDRATES;
 const flashOffset = ref('0x0');
+const partitionTableOffset = ref(0x8000);
 const eraseFlash = ref(false);
 const higherBaudrateAvailable = ref(false);
 const selectedPreset = ref<string | number | null>(null);
@@ -4308,14 +4309,21 @@ const themeIcon = computed(() =>
 );
 
 const currentLanguage = computed<SupportedLocale>(() => getLanguage());
-const languageOptions = computed(() => [
-  { code: 'en', label: t('language.english') },
-  { code: 'fr', label: t('language.french') },
-  { code: 'zh', label: t('language.chinese') },
-]);
+const languageLabelKeys: Record<SupportedLocale, string> = {
+  en: 'language.english',
+  fr: 'language.french',
+  zh: 'language.chinese',
+  tr: 'language.turkish',
+};
+const languageOptions = computed(() =>
+  supportedLocales.map(code => ({
+    code,
+    label: t(languageLabelKeys[code]),
+  })),
+);
 const currentLanguageLabel = computed(() =>
   languageOptions.value.find(lang => lang.code === currentLanguage.value)?.label ??
-  t('language.english'),
+  t(languageLabelKeys.en),
 );
 const otherLanguageLabel = computed(() => {
   const option = languageOptions.value.find(lang => lang.code !== currentLanguage.value);
@@ -4325,7 +4333,7 @@ const languageMenuTitle = computed(() =>
   t('language.switchTo', { language: otherLanguageLabel.value }),
 );
 
-function selectLanguage(code: string) {
+function selectLanguage(code: SupportedLocale) {
   if (code !== currentLanguage.value) {
     setLanguage(code);
   }
@@ -5050,22 +5058,27 @@ const UNUSED_SEGMENT_COLOR = '#c62828';
 const UNUSED_SEGMENT_PATTERN =
   'repeating-linear-gradient(270deg, rgba(248, 113, 113, 0.65) 0px, rgba(248, 113, 113, 0.65) 12px, rgba(220, 38, 38, 0.65) 12px, rgba(220, 38, 38, 0.65) 24px)';
 
-const RESERVED_SEGMENTS = [
-  {
-    key: 'bootloader',
-    label: 'Bootloader',
-    offset: 0x0,
-    size: 0x8000,
-    color: '#546e7a',
-  },
-  {
-    key: 'partition-table',
-    label: 'Partition Table',
-    offset: 0x8000,
-    size: 0x1000,
-    color: '#78909c',
-  },
-];
+const RESERVED_SEGMENTS = computed(() => {
+  const ptOffset = Number.isSafeInteger(partitionTableOffset.value) && partitionTableOffset.value > 0
+    ? partitionTableOffset.value
+    : 0x8000;
+  return [
+    {
+      key: 'bootloader',
+      label: 'Bootloader',
+      offset: 0x0,
+      size: ptOffset,
+      color: '#546e7a',
+    },
+    {
+      key: 'partition-table',
+      label: 'Partition Table',
+      offset: ptOffset,
+      size: 0x1000,
+      color: '#78909c',
+    },
+  ];
+});
 
 const MIN_SEGMENT_PERCENT = 1; // ensure tiny partitions remain hoverable in the map
 
@@ -5120,7 +5133,7 @@ const partitionSegments = computed<PartitionSegment[]>(() => {
     const gapSegments: PartitionMapSegment[] = [];
     let pointer = start;
 
-    const relevantReserved = RESERVED_SEGMENTS.filter(
+    const relevantReserved = RESERVED_SEGMENTS.value.filter(
       block => block.offset < end && block.offset + block.size > start
     ).sort((a, b) => a.offset - b.offset);
 
@@ -5343,7 +5356,7 @@ const formattedPartitions = computed<FormattedPartitionRow[]>(() => {
     }
   }
 
-  const reservedRows = RESERVED_SEGMENTS.map(segment => {
+  const reservedRows = RESERVED_SEGMENTS.value.map(segment => {
     const offsetHex = `0x${segment.offset.toString(16).toUpperCase()}`;
     const sizeText = formatBytes(segment.size) ?? `${segment.size} bytes`;
     return {
@@ -6272,7 +6285,10 @@ async function connect() {
       appMetadataLoaded.value = false;
     } else if (loader.value) {
       const loaderInstance = loader.value;
-      const partitions = await runLoaderOperation(() => readPartitionTable(loaderInstance, undefined, undefined, appendLog));
+      const detectedOffset = await runLoaderOperation(() => probePartitionTableOffset(loaderInstance, appendLog));
+      const partitionOffset = detectedOffset ?? 0x8000;
+      partitionTableOffset.value = partitionOffset;
+      const partitions = await runLoaderOperation(() => readPartitionTable(loaderInstance, partitionOffset, undefined, appendLog));
       partitionTable.value = partitions;
       appMetadataLoaded.value = false;
     } else {
@@ -6425,8 +6441,11 @@ async function refreshPartitionTable(loaderInstance = loader.value) {
       partitionTable.value = [];
       return;
     }
+    const detectedOffset = await runLoaderOperation(() => probePartitionTableOffset(loaderInstance, appendLog));
+    const offset = detectedOffset ?? 0x8000;
+    partitionTableOffset.value = offset;
     const partitions = await runLoaderOperation(() =>
-      readPartitionTable(loaderInstance, undefined, undefined, appendLog),
+      readPartitionTable(loaderInstance, offset, undefined, appendLog),
     );
     partitionTable.value = partitions;
   } finally {

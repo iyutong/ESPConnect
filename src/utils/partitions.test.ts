@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { detectFilesystemType, readPartitionTable } from './partitions';
+import { detectFilesystemType, probePartitionTableOffset, readPartitionTable } from './partitions';
 
 const textEncoder = new TextEncoder();
 const FIXTURE_ROOT = path.resolve(process.cwd(), 'src/tests/fixtures/fs-images');
@@ -129,6 +129,75 @@ describe('partition utilities', () => {
       }
       return table;
     }
+
+    it('detects a non-standard partition table offset only when the first entry is plausible', async () => {
+      const falsePositive = new Uint8Array(32).fill(0xff);
+      new DataView(falsePositive.buffer).setUint16(0, 0x50aa, true);
+
+      const validTableEntry = makePartitionEntry({
+        type: 0x00,
+        subtype: 0x00,
+        offset: 0x10000,
+        size: 0x100000,
+        label: 'factory',
+      });
+
+      const loader = {
+        readFlash: async (offset: number, length: number) => {
+          if (offset === 0x8000) return falsePositive.subarray(0, length);
+          if (offset === 0x9000) return validTableEntry.subarray(0, length);
+          return new Uint8Array(length).fill(0xff);
+        },
+      };
+
+      expect(await probePartitionTableOffset(loader)).toBe(0x9000);
+    });
+
+    it('returns null when no plausible partition table entry is found', async () => {
+      const loader = {
+        readFlash: async (_offset: number, length: number) => new Uint8Array(length).fill(0xff),
+      };
+
+      expect(await probePartitionTableOffset(loader)).toBeNull();
+    });
+
+    it('falls back to the default offset when probing returns null', async () => {
+      const entry = makePartitionEntry({
+        type: 0x00,
+        subtype: 0x00,
+        offset: 0x10000,
+        size: 0x100000,
+        label: 'factory',
+      });
+      const table = createPartitionTable([entry, makeTerminator()]);
+      const calls: Array<{ offset: number; length: number }> = [];
+
+      const loader = {
+        readFlash: async (offset: number, length: number) => {
+          calls.push({ offset, length });
+          if (length === 32) {
+            throw new Error('probe failed');
+          }
+          if (offset === 0x8000) {
+            return table.subarray(0, length);
+          }
+          return new Uint8Array(length).fill(0xff);
+        },
+      };
+
+      const entries = await readPartitionTable(loader);
+
+      expect(entries).toEqual([
+        {
+          label: 'factory',
+          type: 0x00,
+          subtype: 0x00,
+          offset: 0x10000,
+          size: 0x100000,
+        },
+      ]);
+      expect(calls).toContainEqual({ offset: 0x8000, length: 0x400 });
+    });
 
     it('parses entries and detects filesystem type for LittleFS partitions', async () => {
       const fsLabel = 'appfs';
