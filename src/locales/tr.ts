@@ -545,6 +545,7 @@
     french: 'Français',
     chinese: '简体中文',
     turkish: 'Türkçe',
+    german: 'Almanca',
     switchTo: '{language} diline geç',
   },
   theme: {

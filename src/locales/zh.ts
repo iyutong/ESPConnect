@@ -544,6 +544,7 @@
     french: '法语',
     chinese: '中文',
     turkish: '土耳其语',
+    german: '德语',
     switchTo: '切换到{language}',
   },
   theme: {

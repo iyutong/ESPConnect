@@ -40,4 +40,5 @@ npm run dev
 - When contributing a new language:
   1. Create a locale file under `src/locales/` (e.g. `fr.ts`) mirroring the structure in `en.ts` and translate each string section (`app`, `navigation`, `deviceInfo`, etc.).
   2. Import and register the new locale within `src/plugins/i18n.ts`, include the corresponding Vuetify bundle under `$vuetify`, and extend `supportedLocales` so it can be selected at runtime.
-  3. Ensure the English `language` block lists the language name, and provide a translation for that entry inside your locale so the menu can display it correctly.
+  3. Add the language mapping to `languageLabelKeys` in `src/App.vue` (e.g., `fr: 'language.french'`).
+  4. Ensure the English `language` block (in `src/locales/en.ts`) includes the new language name. Optionally (but recommended), add the language name key to all other existing locale files (fr.ts, tr.ts, zh.ts, etc.) so the language menu displays correctly in every UI language.
