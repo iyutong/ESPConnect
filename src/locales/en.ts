@@ -221,6 +221,7 @@
     alerts: {
       readingMetadata: 'Reading application metadata…',
       noApplications: 'No application partitions detected.',
+      partitionTableUnavailable: 'Application partitions cannot be shown because the partition table could not be read.',
     },
     chips: {
       active: 'Active',
@@ -369,6 +370,12 @@
       subtitle: 'Connect to an ESP32 to load its partition table (ESP8266 not supported).',
       subtitleConnected: 'No partition table detected on this ESP32.',
     },
+    error: {
+      title: 'Partition table could not be read',
+      message:
+        'ESPConnect could not read the partition table. This usually means serial communication is unreliable in this browser or the chip/transport is not fully supported.',
+      detail: 'Details: {error}',
+    },
     alerts: {
       unusedFlash: {
         detected: 'Unused flash detected - about {amount} ({bytes} bytes) is reclaimable.',
@@ -480,6 +487,11 @@
     pagesCount: '{count} pages',
     namespacesCount: '{count} namespaces',
     entriesCount: '{count} entries',
+    usage: {
+      label: 'Used {used} / {total}',
+      tooltip:
+        'Entry storage: {percent}% of partition · written: {written} · erased: {erased} · free: {free} · illegal: {illegal} · entry capacity: {capacity}',
+    },
     tabs: {
       keys: 'Keys',
       pages: 'Pages',

@@ -70,6 +70,29 @@
               <v-icon start size="18">mdi-key-outline</v-icon>
                 {{ t('nvsInspector.entriesCount', { count: result.entries.length.toLocaleString() }) }}
             </v-chip>
+
+            <v-tooltip
+              v-if="nvsUsage"
+              :text="t('nvsInspector.usage.tooltip', {
+                percent: nvsUsage.partitionPercentText,
+                written: nvsUsage.writtenBytesText,
+                erased: nvsUsage.erasedBytesText,
+                free: nvsUsage.freeBytesText,
+                illegal: nvsUsage.illegalBytesText,
+                capacity: nvsUsage.entryCapacityBytesText,
+              })"
+              location="bottom"
+            >
+              <template #activator="{ props: tooltipProps }">
+                <v-chip v-bind="tooltipProps" size="small" variant="outlined" color="success">
+                  <v-icon start size="18">mdi-database-eye-outline</v-icon>
+                  {{ t('nvsInspector.usage.label', {
+                    used: nvsUsage.writtenBytesText,
+                    total: nvsUsage.partitionBytesText,
+                  }) }}
+                </v-chip>
+              </template>
+            </v-tooltip>
           </div>
         </div>
 
@@ -488,6 +511,8 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const PAGE_ENTRY_COUNT = 126;
+const ENTRY_SIZE_BYTES = 32;
+const NVS_PAGE_SIZE_BYTES = 0x1000;
 
 type ResultTab = 'keys' | 'pages';
 const activeTab = ref<ResultTab>('pages');
@@ -545,6 +570,72 @@ const pageEntryCounts = computed<Record<number, NvsPageEntryCounts>>(() => {
     out[page.index] = counts;
   }
   return out;
+});
+
+const selectedPartition = computed(() => {
+  const selectedId = props.selectedPartitionId;
+  return (
+    props.partitions.find(partition => partition.id === selectedId || String(partition.id) === String(selectedId)) ??
+    props.partitions[0] ??
+    null
+  );
+});
+
+function formatBytes(bytes: number | null | undefined) {
+  if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes < 0) {
+    return null;
+  }
+  if (bytes === 0) {
+    return '0 bytes';
+  }
+  const units = ['bytes', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  const rounded = unitIndex === 0 ? value.toFixed(0) : value.toFixed(value >= 10 ? 1 : 2);
+  return `${rounded.replace(/\.0+$/, '')} ${units[unitIndex]}`;
+}
+
+const nvsUsage = computed(() => {
+  if (!props.result) {
+    return null;
+  }
+  const counts = Object.values(pageEntryCounts.value);
+  if (!counts.length) {
+    return null;
+  }
+
+  const entryTotals = counts.reduce(
+    (totals, count) => ({
+      written: totals.written + count.written,
+      erased: totals.erased + count.erased,
+      empty: totals.empty + count.empty,
+      illegal: totals.illegal + count.illegal,
+    }),
+    { written: 0, erased: 0, empty: 0, illegal: 0 },
+  );
+
+  const writtenBytes = entryTotals.written * ENTRY_SIZE_BYTES;
+  const erasedBytes = entryTotals.erased * ENTRY_SIZE_BYTES;
+  const freeBytes = entryTotals.empty * ENTRY_SIZE_BYTES;
+  const illegalBytes = entryTotals.illegal * ENTRY_SIZE_BYTES;
+  const entryCapacityBytes =
+    (entryTotals.written + entryTotals.erased + entryTotals.empty + entryTotals.illegal) * ENTRY_SIZE_BYTES;
+  const partitionBytes = selectedPartition.value?.size ?? props.result.pages.length * NVS_PAGE_SIZE_BYTES;
+  const partitionPercent = partitionBytes > 0 ? (writtenBytes / partitionBytes) * 100 : 0;
+
+  return {
+    writtenBytesText: formatBytes(writtenBytes) ?? `${writtenBytes.toLocaleString()} bytes`,
+    erasedBytesText: formatBytes(erasedBytes) ?? `${erasedBytes.toLocaleString()} bytes`,
+    freeBytesText: formatBytes(freeBytes) ?? `${freeBytes.toLocaleString()} bytes`,
+    illegalBytesText: formatBytes(illegalBytes) ?? `${illegalBytes.toLocaleString()} bytes`,
+    entryCapacityBytesText: formatBytes(entryCapacityBytes) ?? `${entryCapacityBytes.toLocaleString()} bytes`,
+    partitionBytesText: formatBytes(partitionBytes) ?? `${partitionBytes.toLocaleString()} bytes`,
+    partitionPercentText: partitionPercent.toFixed(1),
+  };
 });
 
 function clearPageFilter() {
