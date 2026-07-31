@@ -57,14 +57,14 @@
 
                   <div class="summary-chips">
                     <template v-if="hasFeatures">
-                      <v-chip v-for="feature in featurePreview" :key="feature" class="summary-chip" size="large"
+                      <v-chip v-for="feature in visibleFeatures" :key="feature" class="summary-chip" size="large"
                         variant="flat">
                         <v-icon start>mdi-check-circle</v-icon>
                         {{ feature }}
                       </v-chip>
-                      <v-chip v-if="details.features.length > featurePreview.length"
-                        class="summary-chip summary-chip--more" size="small" variant="outlined">
-                        {{ t('deviceInfo.summary.more', { count: details.features.length - featurePreview.length }) }}
+                      <v-chip v-if="hasMoreFeatures"
+                        class="summary-chip summary-chip--more" size="small" variant="outlined" @click="showAllFeatures = true">
+                        {{ t('deviceInfo.summary.more', { count: details.features.length - visibleFeatures.length }) }}
                       </v-chip>
                     </template>
                     <div v-else class="summary-empty">
@@ -130,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import DisconnectedState from './DisconnectedState.vue';
 import { PRIMARY_FACTS, getFactLabelKey } from '../constants/deviceFacts';
@@ -148,6 +148,7 @@ const props = withDefaults(
 );
 
 const { t } = useI18n();
+const showAllFeatures = ref(false);
 
 const urlPattern = /^https?:\/\//i;
 const isUrl = (value: unknown): value is string => typeof value === 'string' && urlPattern.test(value);
@@ -211,11 +212,17 @@ const hasFeatures = computed(
   () => (details.value?.features.length ?? 0) > 0
 );
 
-const featurePreview = computed<string[]>(() => {
+const visibleFeatures = computed<string[]>(() => {
   if (!hasFeatures.value) return [];
   const limit = 6;
-  return details.value?.features.slice(0, limit) ?? [];
+  return showAllFeatures.value
+    ? details.value?.features ?? []
+    : details.value?.features.slice(0, limit) ?? [];
 });
+
+const hasMoreFeatures = computed(() =>
+  !showAllFeatures.value && (details.value?.features.length ?? 0) > visibleFeatures.value.length
+);
 
 const translateFactLabel = (fact: DeviceFact): string => {
   const key = fact.translationKey ?? getFactLabelKey(fact.label);

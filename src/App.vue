@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <v-app>
     <v-navigation-drawer permanent app elevation="1">
       <v-list>
@@ -23,6 +23,10 @@
         <v-list-item v-for="link in resourceLinks" :key="link.href" :href="link.href" :prepend-icon="link.icon"
           target="_blank" rel="noopener" class="app-drawer__list-item" rounded="lg">
           <v-list-item-title>{{ link.title }}</v-list-item-title>
+        </v-list-item>
+        <v-list-item value="makerTools" prepend-icon="mdi-tools" :active="activeTab === 'makerTools'"
+          class="app-drawer__list-item" rounded="lg" @click="activeTab = 'makerTools'">
+          <v-list-item-title>{{ t('navigation.makerTools') }}</v-list-item-title>
         </v-list-item>
       </v-list>
     </v-navigation-drawer>
@@ -238,6 +242,10 @@
 
             <v-window-item value="about">
               <AboutTab />
+            </v-window-item>
+
+            <v-window-item value="makerTools">
+              <MakerToolsTab />
             </v-window-item>
           </v-window>
         </v-card>
@@ -638,6 +646,55 @@
           </v-card>
         </v-dialog>
 
+        <v-dialog :model-value="serialPortPicker.visible" persistent max-width="640" scrollable>
+          <v-card>
+            <v-card-title class="text-h6 d-flex align-center">
+              <v-icon start color="primary">mdi-usb-port</v-icon>
+              {{ t('serialPortPicker.title') }}
+            </v-card-title>
+            <v-card-subtitle>
+              {{ t('serialPortPicker.subtitle') }}
+            </v-card-subtitle>
+            <v-card-text class="serial-port-picker__body">
+              <v-radio-group v-model="serialPortPicker.selectedPortId" hide-details>
+                <v-list class="serial-port-picker__list" density="comfortable" lines="two">
+                  <v-list-item v-for="port in serialPortPicker.ports" :key="port.portId"
+                    class="serial-port-picker__item" rounded="lg" @click="serialPortPicker.selectedPortId = port.portId"
+                    @dblclick="confirmSerialPortSelection(port.portId)">
+                    <template #prepend>
+                      <v-radio :value="port.portId" density="compact"
+                        :aria-label="getSerialPortPrimaryLabel(port)" />
+                    </template>
+                    <v-list-item-title class="serial-port-picker__port-title">
+                      <span class="serial-port-picker__port-name" :title="getSerialPortPrimaryLabel(port)">
+                        {{ getSerialPortPrimaryLabel(port) }}
+                      </span>
+                      <v-chip v-if="port.recommended" size="x-small" color="success" variant="tonal">
+                        {{ t('serialPortPicker.recommended') }}
+                      </v-chip>
+                    </v-list-item-title>
+                    <v-list-item-subtitle class="serial-port-picker__metadata"
+                      :title="getSerialPortMetadata(port) || t('serialPortPicker.noDetails')">
+                      {{ getSerialPortMetadata(port) || t('serialPortPicker.noDetails') }}
+                    </v-list-item-subtitle>
+                  </v-list-item>
+                </v-list>
+              </v-radio-group>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn variant="text" @click="cancelSerialPortSelection">
+                {{ t('dialogs.cancel') }}
+              </v-btn>
+              <v-btn color="primary" variant="tonal" :disabled="!serialPortPicker.selectedPortId"
+                @click="confirmSerialPortSelection()">
+                <v-icon start>mdi-check</v-icon>
+                {{ t('serialPortPicker.actions.select') }}
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
         <v-snackbar v-model="toast.visible" :timeout="toast.timeout" :color="toast.color" location="bottom right"
           data-testid="toast-container">
           {{ toast.message }}
@@ -658,6 +715,7 @@ import FilesystemManagerTab from './components/FilesystemManagerTab.vue';
 import LittlefsManagerTab from './components/LittlefsManagerTab.vue';
 import NvsInspectorTab from './components/NvsInspectorTab.vue';
 import AboutTab from './components/AboutTab.vue';
+import MakerToolsTab from './components/MakerToolsTab.vue';
 import PartitionsTab from './components/PartitionsTab.vue';
 import SessionLogTab from './components/SessionLogTab.vue';
 import SerialMonitorTab from './components/SerialMonitorTab.vue';
@@ -2621,6 +2679,57 @@ function buildFactGroups(facts: DeviceFact[]): DeviceFactGroup[] {
   return groups;
 }
 
+const DOCUMENTATION_FACT_LABELS = [
+  'Hardware Reference',
+  'Datasheet',
+  'Technical Reference Manual',
+  'Errata',
+  'Hardware Design Guidelines',
+] as const;
+
+function createDeviceFact(label: string, value: string | null | undefined): DeviceFact | null {
+  if (!value) return null;
+  return {
+    label,
+    value,
+    icon: FACT_ICONS[label] ?? null,
+    translationKey: getFactLabelKey(label),
+  };
+}
+
+function buildDocumentationFacts(chipName: string, locale: string): DeviceFact[] {
+  const docs = findChipDocs(chipName, locale);
+  if (!docs) return [];
+
+  return [
+    createDeviceFact('Hardware Reference', docs.hwReference),
+    createDeviceFact('Datasheet', docs.datasheet),
+    createDeviceFact('Technical Reference Manual', docs.technicalReferenceManual),
+    createDeviceFact('Errata', docs.errata),
+    createDeviceFact('Hardware Design Guidelines', docs.hardwareDesignGuidelines),
+  ].filter((fact): fact is DeviceFact => Boolean(fact));
+}
+
+function refreshDocumentationFacts(locale: string) {
+  const details = chipDetails.value;
+  if (!details?.name) return;
+
+  const documentationFacts = buildDocumentationFacts(details.name, locale);
+  if (!documentationFacts.length) return;
+
+  const documentationLabels = new Set<string>(DOCUMENTATION_FACT_LABELS);
+  const facts = [
+    ...details.facts.filter(fact => !documentationLabels.has(fact.label)),
+    ...documentationFacts,
+  ];
+
+  chipDetails.value = {
+    ...details,
+    facts,
+    factGroups: buildFactGroups(facts),
+  };
+}
+
 // Human-friendly byte formatter with units.
 function formatBytes(bytes: number | null | undefined): string | null {
   if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes <= 0) return null;
@@ -3946,6 +4055,12 @@ const isE2E =
   (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('e2e'));
 const serialSupported = isE2E || 'serial' in navigator;
 const { t } = useI18n();
+const serialPortPicker = reactive({
+  visible: false,
+  requestId: '',
+  ports: [] as ElectronSerialPortPickerPort[],
+  selectedPortId: '',
+});
 const connected = ref(false);
 const busy = ref(false);
 const flashInProgress = ref(false);
@@ -3972,6 +4087,7 @@ const currentBaud = ref(DEFAULT_FLASH_BAUD);
 const lastFlashBaud = ref(DEFAULT_FLASH_BAUD);
 const previousMonitorBaud = ref(DEFAULT_FLASH_BAUD);
 let suspendBaudWatcher = false;
+let removeSerialPortPickerListener: (() => void) | null = null;
 const baudChangeBusy = ref(false);
 const maintenanceBusy = ref(false);
 const downloadProgress = reactive<ProgressDialogState>({ visible: false, value: 0, label: '' });
@@ -4325,6 +4441,7 @@ const languageLabelKeys: Record<SupportedLocale, string> = {
   zh: 'language.chinese',
   tr: 'language.turkish',
   de: 'language.german',
+  cs: 'language.czech',
 };
 const languageOptions = computed(() =>
   supportedLocales.map(code => ({
@@ -4346,7 +4463,8 @@ const languageMenuTitle = computed(() =>
 
 function selectLanguage(code: SupportedLocale) {
   if (code !== currentLanguage.value) {
-    setLanguage(code);
+    const nextLanguage = setLanguage(code);
+    refreshDocumentationFacts(nextLanguage);
   }
 }
 
@@ -6271,13 +6389,8 @@ async function connect() {
       pushFact('eFuse Block Version', `v${metadata.blockVersionMajor}.${metadata.blockVersionMinor}`);
     }
 
-    const docs = esp.chipName ? findChipDocs(esp.chipName) : undefined;
-    if (docs) {
-      pushFact('Hardware Reference', docs.hwReference);
-      pushFact('Datasheet', docs.datasheet);
-      pushFact('Technical Reference Manual', docs.technicalReferenceManual);
-      pushFact('Errata', docs.errata);
-      pushFact('Hardware Design Guidelines', docs.hardwareDesignGuidelines);
+    if (esp.chipName) {
+      facts.push(...buildDocumentationFacts(esp.chipName, currentLanguage.value));
     }
 
     if (esp.securityFacts) {
@@ -7451,6 +7564,82 @@ function applyOffsetPreset(value: string | null | undefined) {
   }
 }
 
+function formatSerialPortHexId(value: number | null | undefined): string | null {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? `0x${value.toString(16).toUpperCase().padStart(4, '0')}`
+    : null;
+}
+
+function getSerialPortPrimaryLabel(port: ElectronSerialPortPickerPort): string {
+  return port.portName || port.displayName || t('serialPortPicker.unknownPort');
+}
+
+function getSerialPortMetadata(port: ElectronSerialPortPickerPort): string {
+  const primary = getSerialPortPrimaryLabel(port);
+  const displayName = port.displayName && port.displayName !== primary ? port.displayName : null;
+  const vendorId = formatSerialPortHexId(port.vendorId);
+  const productId = formatSerialPortHexId(port.productId);
+  const usbId = vendorId && productId ? t('serialPortPicker.usbId', { vendorId, productId }) : null;
+  const serialNumber = port.serialNumber
+    ? t('serialPortPicker.serialNumber', { serialNumber: port.serialNumber })
+    : null;
+
+  return [displayName, usbId, serialNumber].filter(Boolean).join(' · ');
+}
+
+function resetSerialPortPicker() {
+  serialPortPicker.visible = false;
+  serialPortPicker.requestId = '';
+  serialPortPicker.ports = [];
+  serialPortPicker.selectedPortId = '';
+}
+
+function handleSerialPortPickerRequest(payload: ElectronSerialPortPickerRequest) {
+  const requestId = typeof payload?.requestId === 'string' ? payload.requestId : '';
+  const ports = Array.isArray(payload?.ports)
+    ? payload.ports.filter(port => typeof port.portId === 'string' && port.portId)
+    : [];
+
+  if (!requestId) {
+    return;
+  }
+
+  if (serialPortPicker.requestId && serialPortPicker.requestId !== requestId) {
+    window.electronAPI?.selectSerialPort(serialPortPicker.requestId, '');
+  }
+
+  if (ports.length === 0) {
+    window.electronAPI?.selectSerialPort(requestId, '');
+    resetSerialPortPicker();
+    return;
+  }
+
+  const defaultPortId =
+    payload.defaultPortId && ports.some(port => port.portId === payload.defaultPortId)
+      ? payload.defaultPortId
+      : ports.find(port => port.recommended)?.portId || ports[0].portId;
+
+  serialPortPicker.requestId = requestId;
+  serialPortPicker.ports = ports;
+  serialPortPicker.selectedPortId = defaultPortId;
+  serialPortPicker.visible = true;
+}
+
+function confirmSerialPortSelection(portId = serialPortPicker.selectedPortId) {
+  if (!serialPortPicker.requestId) {
+    return;
+  }
+  window.electronAPI?.selectSerialPort(serialPortPicker.requestId, portId || '');
+  resetSerialPortPicker();
+}
+
+function cancelSerialPortSelection() {
+  if (serialPortPicker.requestId) {
+    window.electronAPI?.selectSerialPort(serialPortPicker.requestId, '');
+  }
+  resetSerialPortPicker();
+}
+
 // Disconnect transport when the page is about to unload.
 function handleBeforeUnload() {
   if (connected.value && transport.value) {
@@ -7460,6 +7649,7 @@ function handleBeforeUnload() {
 
 onMounted(() => {
   window.addEventListener('beforeunload', handleBeforeUnload);
+  removeSerialPortPickerListener = window.electronAPI?.onSerialPortPickerOpen?.(handleSerialPortPickerRequest) || null;
   if ('serial' in navigator && typeof navigator.serial?.addEventListener === 'function') {
     navigator.serial.addEventListener('disconnect', handleSerialDisconnectEvent);
   }
@@ -7467,6 +7657,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', handleBeforeUnload);
+  removeSerialPortPickerListener?.();
+  removeSerialPortPickerListener = null;
+  cancelSerialPortSelection();
   if ('serial' in navigator && typeof navigator.serial?.removeEventListener === 'function') {
     navigator.serial.removeEventListener('disconnect', handleSerialDisconnectEvent);
   }
@@ -7701,5 +7894,39 @@ onBeforeUnmount(() => {
   margin: 0 auto;
   border-radius: 8px;
   background: color-mix(in srgb, var(--v-theme-surface) 60%, transparent);
+}
+
+.serial-port-picker__body {
+  padding-top: 14px;
+}
+
+.serial-port-picker__list {
+  max-height: min(58vh, 420px);
+  overflow-y: auto;
+  padding-block: 4px;
+}
+
+.serial-port-picker__item {
+  min-height: 72px;
+}
+
+.serial-port-picker__port-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.serial-port-picker__port-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.serial-port-picker__metadata {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

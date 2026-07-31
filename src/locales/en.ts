@@ -1,4 +1,4 @@
-﻿const en = {
+const en = {
   app: {
     title: 'ESPConnect',
     sectionsLabel: 'Sections',
@@ -16,11 +16,60 @@
     console: 'Serial Monitor',
     log: 'Session Log',
     about: 'About',
+    makerTools: 'Maker Tools',
   },
   resources: {
     tutorial: 'Tutorial',
     buyCoffee: 'Buy Me a Coffee',
     getHelp: 'Get Help',
+  },
+  makerTools: {
+    title: 'Maker Tools',
+    subtitle: 'Maker utilities from The Last Outpost Workshop for ESP32 and embedded projects.',
+    thumbnailAlt: '{title} tutorial thumbnail',
+    support: {
+      title: 'Support the project',
+      description:
+        'These maker utilities and ESPConnect are free to use. If they help at your bench, a coffee supports ongoing development.',
+      action: 'Buy Me a Coffee',
+    },
+    actions: {
+      openTool: 'Open tool',
+      watchTutorial: 'Watch tutorial',
+      watchSpecific: 'Watch {title} tutorial',
+    },
+    items: {
+      espBoardVault: {
+        title: 'ESP Board Vault',
+        description:
+          'ESP Board Vault is a free local-first desktop inventory app that helps ESP32 makers scan, identify, organize, and track their boards. Create board records with hardware details, partition maps, photos, projects, checklists, and backups. No account, no cloud backend, no telemetry - everything stays on your computer.',
+        sourceLabel: 'thelastoutpostworkshop/ESPVault',
+      },
+      partitionBuilder: {
+        title: 'ESP32 Partition Builder',
+        description:
+          'ESP32 Partition Builder helps plan and create custom partition layouts for ESP32 boards.',
+        sourceLabel: 'thelastoutpostworkshop/ESP32PartitionBuilder',
+      },
+      videoConversion: {
+        title: 'Video Conversion Studio',
+        description:
+          'Video Conversion Studio converts video assets for embedded displays. Use regular video or audio files and turn them into output that fits ESP32 display projects.',
+        sourceLabel: 'thelastoutpostworkshop/video_conversion',
+      },
+      gpioViewer: {
+        title: 'GPIOViewer',
+        description:
+          'GPIOViewer offers real-time visualization of GPIO pin activity directly in a web browser, making it easier to inspect pin states, confirm board behavior, and troubleshoot wiring or signal activity.',
+        sourceLabel: 'thelastoutpostworkshop/gpio_viewer',
+      },
+      arduinoMakerWorkshop: {
+        title: 'Arduino Maker Workshop',
+        description:
+          'Arduino Maker Workshop is a VS Code extension for Arduino-centered maker development, giving makers a focused editor workflow for sketch-driven projects and board-oriented iteration.',
+        sourceLabel: 'VS Code Marketplace extension',
+      },
+    },
   },
   actions: {
     connect: 'Connect',
@@ -74,6 +123,18 @@
     emptyState: 'Monitor output will appear here once started.',
     copySuccess: 'Serial monitor copied to clipboard.',
     copyError: 'Unable to copy serial monitor output. Please try again.',
+  },
+  serialPortPicker: {
+    title: 'Select serial port',
+    subtitle: 'Choose the port connected to your ESP device.',
+    recommended: 'Recommended',
+    unknownPort: 'Unknown port',
+    noDetails: 'No device details available',
+    usbId: 'USB ID {vendorId}:{productId}',
+    serialNumber: 'Serial {serialNumber}',
+    actions: {
+      select: 'Select',
+    },
   },
   dialogs: {
     connecting: 'Connecting',
@@ -559,6 +620,7 @@
     chinese: '简体中文',
     turkish: 'Türkçe',
     german: 'German',
+    czech: 'Czech',
     switchTo: 'Switch to {language}',
   },
   theme: {

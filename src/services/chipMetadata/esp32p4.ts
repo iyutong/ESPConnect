@@ -105,7 +105,7 @@ export async function readEsp32P4Metadata(loader: ESPLoader): Promise<ChipMetada
 
   const getPkgVersion = async () => {
     const word2 = await readEfuse(2);
-    return (word2 >> 27) & 0x07;
+    return (word2 >> 20) & 0x07;
   };
 
   const getMinorChipVersion = async () => {
@@ -115,7 +115,7 @@ export async function readEsp32P4Metadata(loader: ESPLoader): Promise<ChipMetada
 
   const getMajorChipVersion = async () => {
     const word2 = await readEfuse(2);
-    return (word2 >> 4) & 0x03;
+    return (((word2 >> 23) & 0x01) << 2) | ((word2 >> 4) & 0x03);
   };
 
   const getChipDescription = async () => {
@@ -126,7 +126,18 @@ export async function readEsp32P4Metadata(loader: ESPLoader): Promise<ChipMetada
     return `${chipName} (revision v${majorRev}.${minorRev})`;
   };
 
-  const getChipFeatures = async () => ['High-Performance MCU'];
+  const getChipFeatures = async () => [
+    'Dual-core 32-bit RISC-V high-performance CPU',
+    'Low-power RISC-V core',
+    'MIPI CSI and MIPI DSI',
+    'USB 2.0 OTG',
+    'Ethernet MAC',
+    'SDIO',
+    'H.264 encoder',
+    'JPEG codec and image signal processor',
+    'Secure Boot and Flash Encryption',
+    'No integrated Wi-Fi or Bluetooth (external co-processor required)',
+  ];
 
   const getCrystalFreq = async () => 40; // ESP32-P4 XTAL is fixed to 40MHz
 
