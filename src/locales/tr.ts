@@ -39,6 +39,12 @@ const tr = {
       watchSpecific: '{title} eğitimini izle',
     },
     items: {
+      espPinoutExplorer: {
+        title: 'ESP Pinout Explorer',
+        description:
+          'ESP geli\u015ftirme kartlar\u0131, mod\u00fclleri ve \u00e7ip paketleri i\u00e7in etkile\u015fimli bir tezg\u00e2h ba\u015f\u0131 referans\u0131. Donan\u0131m\u0131 ba\u011flamadan \u00f6nce pinleri, i\u015flevleri, ba\u015fl\u0131k etiketlerini ve belgelenmi\u015f kablolama k\u0131s\u0131tlamalar\u0131n\u0131 bulun.',
+        sourceLabel: 'thelastoutpostworkshop/esp-pinout-explorer',
+      },
       espBoardVault: {
         title: 'ESP Board Vault',
         description:

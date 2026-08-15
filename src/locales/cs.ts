@@ -39,6 +39,12 @@ const cs = {
       watchSpecific: 'Zobrazit návod {title}',
     },
     items: {
+      espPinoutExplorer: {
+        title: 'ESP Pinout Explorer',
+        description:
+          'Interaktivn\u00ed referen\u010dn\u00ed n\u00e1stroj pro pracovn\u00ed st\u016fl pro v\u00fdvojov\u00e9 desky, moduly a pouzdra \u010dip\u016f ESP. P\u0159ed p\u0159ipojen\u00edm hardwaru vyhledejte piny, funkce, popisky konektor\u016f a zdokumentovan\u00e1 omezen\u00ed zapojen\u00ed.',
+        sourceLabel: 'thelastoutpostworkshop/esp-pinout-explorer',
+      },
       espBoardVault: {
         title: 'ESP Board Vault',
         description:

@@ -39,6 +39,12 @@ const en = {
       watchSpecific: 'Watch {title} tutorial',
     },
     items: {
+      espPinoutExplorer: {
+        title: 'ESP Pinout Explorer',
+        description:
+          'An interactive bench-side reference for ESP development boards, modules, and chip packages. Find pins, functions, header labels, and documented wiring constraints before connecting hardware.',
+        sourceLabel: 'thelastoutpostworkshop/esp-pinout-explorer',
+      },
       espBoardVault: {
         title: 'ESP Board Vault',
         description:

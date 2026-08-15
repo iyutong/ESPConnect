@@ -39,6 +39,12 @@ const de = {
       watchSpecific: '{title}-Tutorial ansehen',
     },
     items: {
+      espPinoutExplorer: {
+        title: 'ESP Pinout Explorer',
+        description:
+          'Eine interaktive Werkbank-Referenz f\u00fcr ESP-Entwicklungsboards, Module und Chipgeh\u00e4use. Finde Pins, Funktionen, Header-Beschriftungen und dokumentierte Verdrahtungshinweise, bevor du Hardware anschlie\u00dft.',
+        sourceLabel: 'thelastoutpostworkshop/esp-pinout-explorer',
+      },
       espBoardVault: {
         title: 'ESP Board Vault',
         description:

@@ -39,6 +39,12 @@ const zh = {
       watchSpecific: '观看 {title} 教程',
     },
     items: {
+      espPinoutExplorer: {
+        title: 'ESP Pinout Explorer',
+        description:
+          '\u9762\u5411 ESP \u5f00\u53d1\u677f\u3001\u6a21\u5757\u548c\u82af\u7247\u5c01\u88c5\u7684\u4ea4\u4e92\u5f0f\u5de5\u4f5c\u53f0\u53c2\u8003\u5de5\u5177\u3002\u5728\u8fde\u63a5\u786c\u4ef6\u524d\uff0c\u67e5\u627e\u5f15\u811a\u3001\u529f\u80fd\u3001\u6392\u9488\u6807\u7b7e\u548c\u5df2\u8bb0\u5f55\u7684\u63a5\u7ebf\u9650\u5236\u3002',
+        sourceLabel: 'thelastoutpostworkshop/esp-pinout-explorer',
+      },
       espBoardVault: {
         title: 'ESP Board Vault',
         description:

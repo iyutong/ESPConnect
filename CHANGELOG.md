@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.19
+### Improvement
+- Added ESP Pinout Explorer to Maker Tools, with a local preview image plus links to the explorer, its tutorial, and its source repository.
+
 ## 1.1.18
 ### Improvement
 - Device Information now shows ESP32-P4 silicon capabilities, correctly identifies its package and revision fields, and lets users expand long capability lists ([issue #167](https://github.com/thelastoutpostworkshop/ESPConnect/issues/167)).

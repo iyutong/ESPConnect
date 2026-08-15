@@ -39,6 +39,12 @@ const fr = {
       watchSpecific: 'Voir le tutoriel {title}',
     },
     items: {
+      espPinoutExplorer: {
+        title: 'ESP Pinout Explorer',
+        description:
+          'Une r\u00e9f\u00e9rence interactive pour l\'atelier couvrant les cartes de d\u00e9veloppement, modules et bo\u00eetiers ESP. Trouvez les broches, fonctions, \u00e9tiquettes des connecteurs et contraintes de c\u00e2blage document\u00e9es avant de connecter le mat\u00e9riel.',
+        sourceLabel: 'thelastoutpostworkshop/esp-pinout-explorer',
+      },
       espBoardVault: {
         title: 'ESP Board Vault',
         description:
